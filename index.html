@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Protokollgenerator - BRF Gullvivan</title>
   
-  <!-- Stabil webbläsarversion av docx -->
   <script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
@@ -26,17 +25,31 @@
       line-height: 1.5;
     }
     .container {
-      max-width: 800px;
+      max-width: 860px;
       margin: 0 auto;
       background: var(--card);
       padding: 30px;
       border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.06);
     }
-    h1 { color: var(--primary); font-size: 1.6rem; margin-bottom: 5px; }
-    p.subtitle { color: #64748b; margin-bottom: 25px; }
+    .brand-header {
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+    .brand-header h1 {
+      color: var(--primary);
+      font-size: 1.6rem;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+    .brand-header p {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
     .form-group { margin-bottom: 15px; }
-    label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 5px; }
+    label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 5px; }
     input, textarea {
       width: 100%;
       padding: 10px;
@@ -49,16 +62,19 @@
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     
     .section-title {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 700;
       color: var(--primary);
-      margin-top: 30px;
-      margin-bottom: 15px;
-      padding-bottom: 6px;
+      margin-top: 25px;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
       border-bottom: 2px solid #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .para-card {
-      background: #f1f5f9;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       padding: 15px;
       border-radius: 8px;
       margin-bottom: 15px;
@@ -76,7 +92,7 @@
     }
     .btn-secondary { background: #e2e8f0; color: #1e293b; }
     .btn-secondary:hover { background: #cbd5e1; }
-    .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; font-size: 1.05rem; margin-top: 20px; }
+    .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; font-size: 1.05rem; margin-top: 25px; }
     .btn-primary:hover { background: #172554; }
     .btn-danger { background: #ef4444; color: #fff; font-size: 0.8rem; padding: 4px 8px; position: absolute; top: 12px; right: 12px; }
   </style>
@@ -84,255 +100,390 @@
 <body>
 
 <div class="container">
-  <h1>BRF Gullvivan</h1>
-  <p class="subtitle">Styrelseprotokoll Generator</p>
+  <div class="brand-header">
+    <h1>Bostadsrättsföreningen Gullvivan</h1>
+    <p>Katrineholm Gullvivan 5 | Malmgatan 2, 4 och 6 | Org.nr: 718500-0523</p>
+  </div>
 
-  <div class="section-title">Mötesinformation</div>
+  <div class="section-title">1. Mötesinformation & Tider</div>
   <div class="row">
     <div class="form-group">
-      <label>Mötestyp</label>
-      <input type="text" id="meetingType" value="Ordinarie styrelsemöte">
+      <label>Mötestyp / Rubrik</label>
+      <input type="text" id="meetingType" value="STYRELSEMÖTE">
     </div>
     <div class="form-group">
-      <label>Protokoll nr</label>
-      <input type="text" id="meetingNr" placeholder="T.ex. Nr 5 / 2026">
+      <label>Mötesdatum</label>
+      <input type="date" id="meetingDate" value="2026-09-17">
     </div>
-  </div>
-
-  <div class="row">
-    <div class="form-group">
-      <label>Datum</label>
-      <input type="date" id="meetingDate">
-    </div>
-    <div class="form-group">
-      <label>Tid och Plats</label>
-      <input type="text" id="meetingPlace" placeholder="T.ex. 18:30 – 20:00, Styrelserummet">
-    </div>
-  </div>
-
-  <div class="section-title">Närvarande & Roller</div>
-  <div class="form-group">
-    <label>Närvarande ledamöter & suppleanter</label>
-    <textarea id="attendees" placeholder="Namn, Namn, Namn..."></textarea>
-  </div>
-  <div class="form-group">
-    <label>Frånvarande / Föranmälda förhinder</label>
-    <input type="text" id="absent" placeholder="T.ex. Inga, eller Namn">
   </div>
   <div class="row">
     <div class="form-group">
-      <label>Mötesordförande</label>
-      <input type="text" id="chairman" placeholder="Namn på ordförande">
+      <label>Startnummer för paragrafer (År–Nr)</label>
+      <input type="text" id="startNr" value="2026–82" placeholder="T.ex. 2026–82">
     </div>
     <div class="form-group">
-      <label>Sekreterare (protokollförare)</label>
-      <input type="text" id="secretary" placeholder="Namn på sekreterare">
+      <label>Tid & Plats</label>
+      <input type="text" id="meetingPlace" value="Föreningslokalen, kl 18:30">
     </div>
   </div>
+
+  <div class="section-title">2. Närvarande & Justering</div>
   <div class="form-group">
-    <label>Justerare</label>
-    <input type="text" id="adjuster" placeholder="Namn på justerare">
+    <label>Beslutande närvarande (skriv ett namn per rad)</label>
+    <textarea id="attendees" rows="4">Göran Andersson
+Robert Zweiniger
+Mikko Virkkunen
+Robert Lindkvist
+Monica Wiren</textarea>
+  </div>
+  <div class="row">
+    <div class="form-group">
+      <label>Protokollförare (Vid protokollet)</label>
+      <input type="text" id="secretary" value="Mikko Virkkunen">
+    </div>
+    <div class="form-group">
+      <label>Justerare</label>
+      <input type="text" id="adjuster" value="Göran Andersson">
+    </div>
   </div>
 
-  <div class="section-title">Ärenden & Paragrafer</div>
+  <div class="section-title">3. Paragrafer & Ärenden</div>
   <div id="paragraphsContainer"></div>
 
-  <button type="button" class="btn btn-secondary" onclick="addParagraph()">+ Lägg till ärende / paragraf</button>
+  <button type="button" class="btn btn-secondary" onclick="addParagraph()">+ Lägg till paragraf</button>
 
-  <div class="section-title">Slutför</div>
-  <button type="button" id="downloadBtn" class="btn btn-primary" onclick="generateDocx()">Ladda ner Word-fil (.docx)</button>
+  <div class="section-title">Generera</div>
+  <button type="button" id="downloadBtn" class="btn btn-primary" onclick="generateDocx()">Ladda ner formaterat protokoll (.docx)</button>
 </div>
 
 <script>
-  document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
+  let paraItems = [
+    { title: "Mötets öppnande", text: "Göran Andersson öppnar mötet och hälsade alla välkomna. Robert Lindkvist inträdde som tjänstgörande suppleant för ordinarie ledamot Urban Ehrlin." },
+    { title: "Dagordning", text: "Den föreslagna dagordningen godkändes." },
+    { title: "Protokolljustering", text: "Protokollet från styrelsemötet 2026-08-20 lästes upp och godkändes." },
+    { title: "Rapporter", text: "a) Kärlskåp:\nKärlskåpen har monterats och levererats enligt plan. Slutkostnaden uppgår till 573 580 kr enligt antagen offert. Faktura från Certego avseende montering och anpassning av lås har inkommit och godkänts med 10 877 kr inkl. moms.\n\nb) Garagekontrakt:\nNya standardiserade kontrakt har tagits fram för garage och bilplatser utomhus. Garageavtal samt kvittens för nyckel, tagg och garageöppnare slås i fortsättningen samman till ett gemensamt avtal för enklare hantering och tydligare ansvarsfördelning." },
+    { title: "Ekonomi", text: "a) Offert Vesam:\nFrågan bordläggs i väntan på en kompletterande offert från MSAB.\n\nb) Nya Villkor för lån:\nFöreningens lån med nummer 33663579 och 47896177 har villkorsändrats med en fastställd ränta om 2,89 %.\n\nc) Offert från Presto:\nOffert har inkommit från Presto gällande besiktning av föreningens fyra skyddsrum till en kostnad av 3 000 kr per skyddsrum (totalt 12 000 kr). Styrelsen beslutar att tacka nej till offerten, då fastighetsägaren själv ansvarar för underhållet och lagkrav på extern årlig besiktning saknas. Styrelsen genomför erforderlig översyn och åtgärder i egen regi." },
+    { title: "Störningsjour", text: "Frågan om att anlita en extern störningsjour har lyfts till styrelsen. Efter diskussion beslutar styrelsen att inte teckna avtal om störningsjour i dagsläget. Eventuella störningar hanteras som tidigare genom föreningens ordinarie rutiner och dialog med styrelsen." },
+    { title: "Sopkasuner", text: "Styrelsen beslutar att informera medlemmarna om att hushållssopor/restavfall från och med den 1 oktober 2026 ska slängas i markbehållarna på gård 2 och 6, samt att matavfall ska lämnas i markbehållaren på gård 4. Ett informationsblad tas fram och delas ut i varje lägenhets brevlåda." },
+    { title: "Andrahandsuthyrning", text: "• Lägenhet B410 (Malmgatan 4D): Youssef Kourieh ansöker om förlängning av uthyrning till Laila Youssef under perioden 2026-09-22 till 2027-03-22. Styrelsen beslutar att bevilja ansökan. (se bilaga 2).\n• Lägenhet C313 (Malmgatan 6E): Emelie Widlund ansöker om uthyrning till Daniela Alexandra Zelaya Hernandez under perioden 2026-11-01 till 2027-10-31. Styrelsen beslutar att bevilja ansökan. (se bilaga)." },
+    { title: "Nya frågor", text: "Inga övriga frågor anmäldes eller behandlades." },
+    { title: "Nästa styrelsemöte", text: "I föreningslokalen 22/10–26 kl 18:00." },
+    { title: "Avslutning", text: "Ordförande Göran Andersson tackade de närvarande för visat intresse och förklarade mötet avslutat." }
+  ];
 
-  let paraCount = 0;
-
-  function addParagraph(title = "", content = "") {
-    paraCount++;
+  function renderParagraphs() {
     const container = document.getElementById('paragraphsContainer');
-    const div = document.createElement('div');
-    div.className = 'para-card';
-    div.id = 'para-' + paraCount;
-    div.innerHTML = `
-      <button type="button" class="btn btn-danger" onclick="removeParagraph(${paraCount})">Ta bort</button>
-      <div class="form-group">
-        <label>Paragraf ${paraCount} - Rubrik</label>
-        <input type="text" class="para-title" value="${title}" placeholder="Ärenderubrik">
-      </div>
-      <div class="form-group">
-        <label>Beslut / Anteckning</label>
-        <textarea class="para-text" placeholder="Styrelsen beslöt att...">${content}</textarea>
-      </div>
-    `;
-    container.appendChild(div);
-  }
-
-  function removeParagraph(id) {
-    const el = document.getElementById('para-' + id);
-    if (el) el.remove();
-    renumber();
-  }
-
-  function renumber() {
-    const cards = document.querySelectorAll('.para-card');
-    cards.forEach((card, index) => {
-      const lbl = card.querySelector('label');
-      if (lbl) lbl.textContent = `Paragraf ${index + 1} - Rubrik`;
+    container.innerHTML = '';
+    paraItems.forEach((p, idx) => {
+      const div = document.createElement('div');
+      div.className = 'para-card';
+      div.id = 'para-' + idx;
+      div.innerHTML = `
+        <button type="button" class="btn btn-danger" onclick="removeParagraph(${idx})">Ta bort</button>
+        <div class="form-group">
+          <label>Punkt ${idx + 1} - Ärenderubrik</label>
+          <input type="text" class="para-title" value="${p.title}">
+        </div>
+        <div class="form-group">
+          <label>Beslut / Anteckningar</label>
+          <textarea class="para-text" rows="3">${p.text}</textarea>
+        </div>
+      `;
+      container.appendChild(div);
     });
-    paraCount = cards.length;
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    addParagraph("Mötets öppnande", "Ordförande förklarade mötet öppnat och hälsade samtliga välkomna.");
-    addParagraph("Fastställande av dagordning", "Den utsända dagordningen godkändes utan ändringar.");
-    addParagraph("Val av sekreterare och justerare", "Till mötessekreterare valdes sekreteraren och till protokolljusterare valdes justeraren.");
-    addParagraph("Föregående protokoll", "Föregående styrelseprotokoll gicks igenom, lades till handlingarna och godkändes.");
-    addParagraph("Ekonomi och förvaltning", "Rapport gällande föreningens löpande ekonomi.");
-    addParagraph("Fastighet och underhåll", "Lägesrapport gällande fastighetens drift och åtgärder.");
-    addParagraph("Övriga frågor", "Inga övriga frågor anmäldes.");
-    addParagraph("Mötets avslutande", "Ordförande tackade de närvarande och avslutade sammanträdet.");
-  });
+  function addParagraph() {
+    paraItems.push({ title: "Nytt ärende", text: "" });
+    renderParagraphs();
+  }
+
+  function removeParagraph(idx) {
+    saveCurrentInputs();
+    paraItems.splice(idx, 1);
+    renderParagraphs();
+  }
+
+  function saveCurrentInputs() {
+    const titles = document.querySelectorAll('.para-title');
+    const texts = document.querySelectorAll('.para-text');
+    titles.forEach((t, i) => {
+      if (paraItems[i]) {
+        paraItems[i].title = t.value;
+        paraItems[i].text = texts[i].value;
+      }
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', renderParagraphs);
 
   async function generateDocx() {
+    saveCurrentInputs();
     const btn = document.getElementById('downloadBtn');
     btn.textContent = "Skapar Word-fil...";
     btn.disabled = true;
 
     try {
-      if (typeof docx === 'undefined') {
-        alert("Kunde inte ladda Word-biblioteket. Kontrollera att webbläsaren tillåter externa skript.");
-        return;
-      }
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, AlignmentType } = docx;
 
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
-
-      const meetingType = document.getElementById('meetingType').value;
-      const meetingNr = document.getElementById('meetingNr').value || "1";
-      const meetingDate = document.getElementById('meetingDate').value;
-      const meetingPlace = document.getElementById('meetingPlace').value;
-      const attendees = document.getElementById('attendees').value;
-      const absent = document.getElementById('absent').value;
-      const chairman = document.getElementById('chairman').value;
+      const meetingDate = document.getElementById('meetingDate').value || "2026-09-17";
+      const startNrStr = document.getElementById('startNr').value || "2026–82";
       const secretary = document.getElementById('secretary').value;
       const adjuster = document.getElementById('adjuster').value;
+      const attendees = document.getElementById('attendees').value.split('\n').filter(n => n.trim().length > 0);
 
-      const paraTitles = document.querySelectorAll('.para-title');
-      const paraTexts = document.querySelectorAll('.para-text');
+      // Dela upp startnr t.ex. "2026–82"
+      let prefix = "2026–";
+      let startNumber = 82;
+      const match = startNrStr.match(/^(.*?)(\d+)$/);
+      if (match) {
+        prefix = match[1];
+        startNumber = parseInt(match[2], 10);
+      }
 
-      const docChildren = [
-        new Paragraph({
-          text: "BRF GULLVIVAN",
-          heading: HeadingLevel.TITLE,
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 150 }
-        }),
-        new Paragraph({
-          text: `PROTOKOLL - ${meetingType.toUpperCase()}`,
-          heading: HeadingLevel.HEADING_1,
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 300 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Protokoll nr: ", bold: true }),
-            new TextRun(meetingNr),
-            new TextRun({ text: "        Datum: ", bold: true }),
-            new TextRun(meetingDate)
-          ],
-          spacing: { after: 120 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Tid och plats: ", bold: true }),
-            new TextRun(meetingPlace || "—")
-          ],
-          spacing: { after: 120 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Närvarande: ", bold: true }),
-            new TextRun(attendees || "Inga angivna")
-          ],
-          spacing: { after: 120 }
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Föranmält förhinder: ", bold: true }),
-            new TextRun(absent || "Inga")
-          ],
-          spacing: { after: 300 }
-        })
-      ];
+      // Tunna kanter i Gullvivan-grå stil
+      const thinBorder = { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" };
+      const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
 
-      paraTitles.forEach((tInput, i) => {
-        const num = i + 1;
-        const title = tInput.value.trim();
-        const body = paraTexts[i].value.trim();
+      const docChildren = [];
 
-        docChildren.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: `§ ${num} ${title}`, bold: true, size: 24 })
-            ],
-            spacing: { before: 240, after: 100 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: body || "—" })
-            ],
-            spacing: { after: 200 }
-          })
-        );
-      });
-
+      // 1. TOPPRUBRIK (Samma som P-platsavtalet)
       docChildren.push(
-        new Paragraph({ text: "", spacing: { before: 400, after: 200 } }),
         new Paragraph({
-          text: "Vid protokollet:",
-          spacing: { after: 300 }
+          children: [
+            new TextRun({ text: "PROTOKOLL FÖR STYRELSEMÖTE", bold: true, size: 30, color: "1E3A8A" })
+          ],
+          spacing: { after: 60 }
         }),
         new Paragraph({
           children: [
-            new TextRun("___________________________          ___________________________")
+            new TextRun({ text: "Bostadsrättsföreningen Gullvivan", bold: true, size: 22, color: "334155" })
+          ],
+          spacing: { after: 40 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Fastighet: Katrineholm Gullvivan 5 | Malmgatan 2, 4 och 6 | Org.nr: 718500-0523", size: 18, color: "64748B" })
+          ],
+          spacing: { after: 200 }
+        })
+      );
+
+      // 2. INTRO-BOX (Mötesinformation)
+      docChildren.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder, insideHorizontal: thinBorder, insideVertical: thinBorder },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+                  children: [new Paragraph({ children: [new TextRun({ text: "MÖTESDATUM & TID", bold: true, size: 18, color: "1E3A8A" })] })],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  margins: { top: 100, bottom: 100, left: 140, right: 140 }
+                }),
+                new TableCell({
+                  shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+                  children: [new Paragraph({ children: [new TextRun({ text: "PLATS", bold: true, size: 18, color: "1E3A8A" })] })],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  margins: { top: 100, bottom: 100, left: 140, right: 140 }
+                })
+              ]
+            }),
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({ children: [new TextRun({ text: meetingDate, size: 20 })] })],
+                  margins: { top: 100, bottom: 100, left: 140, right: 140 }
+                }),
+                new TableCell({
+                  children: [new Paragraph({ children: [new TextRun({ text: document.getElementById('meetingPlace').value || "Föreningslokalen", size: 20 })] })],
+                  margins: { top: 100, bottom: 100, left: 140, right: 140 }
+                })
+              ]
+            })
           ]
         }),
-        new Paragraph({
-          children: [
-            new TextRun(`${secretary || "Sekreterare"} (Sekreterare)`),
-            new TextRun(`                    ${chairman || "Ordförande"} (Mötesordförande)`)
-          ],
-          spacing: { after: 400 }
+        new Paragraph({ text: "", spacing: { after: 150 } })
+      );
+
+      // 3. TVÅSPALTIG ÖVERSIKT: DAGORDNING & NÄRVARANDE (Samma struktur som ert nuvarande protokoll)
+      const agendaRows = paraItems.map((p, i) => `${i + 1}. ${p.title}`).join('\n');
+      const attendeesRows = attendees.join('\n');
+
+      docChildren.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder, insideHorizontal: thinBorder, insideVertical: thinBorder },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+                  children: [new Paragraph({ children: [new TextRun({ text: "DAGORDNING", bold: true, size: 18, color: "1E3A8A" })] })],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 }
+                }),
+                new TableCell({
+                  shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+                  children: [new Paragraph({ children: [new TextRun({ text: "BESLUTANDE NÄRVARANDE", bold: true, size: 18, color: "1E3A8A" })] })],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 }
+                })
+              ]
+            }),
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: paraItems.map((p, i) => new Paragraph({
+                    children: [new TextRun({ text: `${i + 1}. ${p.title}`, size: 19 })],
+                    spacing: { after: 40 }
+                  })),
+                  margins: { top: 120, bottom: 120, left: 120, right: 120 }
+                }),
+                new TableCell({
+                  children: attendees.map(person => new Paragraph({
+                    children: [new TextRun({ text: person, size: 19 })],
+                    spacing: { after: 40 }
+                  })),
+                  margins: { top: 120, bottom: 120, left: 120, right: 120 }
+                })
+              ]
+            })
+          ]
         }),
-        new Paragraph({
-          text: "Justeras:",
-          spacing: { after: 300 }
-        }),
-        new Paragraph({
-          text: "___________________________"
-        }),
-        new Paragraph({
-          text: `${adjuster || "Justerare"} (Justerare)`
+        new Paragraph({ text: "", spacing: { after: 250 } })
+      );
+
+      // 4. PARAGRAFER & BESLUT
+      paraItems.forEach((p, idx) => {
+        const currentParaNr = `${prefix}${startNumber + idx}`;
+
+        // Paragrafrubrik med stilren färgram (Gullvivan-stil)
+        docChildren.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { top: thinBorder, bottom: thinBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({
+                    shading: { type: ShadingType.CLEAR, fill: "F8FAFC" },
+                    children: [
+                      new Paragraph({
+                        children: [
+                          new TextRun({ text: currentParaNr + "   ", bold: true, size: 21, color: "1E3A8A" }),
+                          new TextRun({ text: p.title, bold: true, size: 21, color: "0F172A" })
+                        ]
+                      })
+                    ],
+                    margins: { top: 80, bottom: 80, left: 100, right: 100 }
+                  })
+                ]
+              })
+            ]
+          }),
+          new Paragraph({ text: "", spacing: { after: 40 } })
+        );
+
+        // Brödtext med radbrytningar
+        const lines = p.text.split('\n');
+        lines.forEach(line => {
+          docChildren.push(
+            new Paragraph({
+              children: [new TextRun({ text: line, size: 20, color: "1E293B" })],
+              spacing: { after: 80 }
+            })
+          );
+        });
+
+        docChildren.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+      });
+
+      // 5. SIGNATURER / JUSTERING (Exakt samma layout som p-platsavtalet)
+      docChildren.push(
+        new Paragraph({ text: "", spacing: { before: 200, after: 100 } }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder, insideHorizontal: thinBorder, insideVertical: thinBorder },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+                  children: [new Paragraph({ children: [new TextRun({ text: "VID PROTOKOLLET", bold: true, size: 18, color: "1E3A8A" })] })],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 }
+                }),
+                new TableCell({
+                  shading: { type: ShadingType.CLEAR, fill: "F1F5F9" },
+                  children: [new Paragraph({ children: [new TextRun({ text: "JUSTERARE", bold: true, size: 18, color: "1E3A8A" })] })],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 }
+                })
+              ]
+            }),
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [
+                    new Paragraph({ text: "", spacing: { after: 400 } }),
+                    new Paragraph({ children: [new TextRun({ text: "____________________________________", color: "94A3B8" })] }),
+                    new Paragraph({ children: [new TextRun({ text: secretary || "Mikko Virkkunen", bold: true, size: 20 })] }),
+                    new Paragraph({ children: [new TextRun({ text: "Sekreterare / Protokollförare", size: 17, color: "64748B" })] })
+                  ],
+                  margins: { top: 120, bottom: 120, left: 120, right: 120 }
+                }),
+                new TableCell({
+                  children: [
+                    new Paragraph({ text: "", spacing: { after: 400 } }),
+                    new Paragraph({ children: [new TextRun({ text: "____________________________________", color: "94A3B8" })] }),
+                    new Paragraph({ children: [new TextRun({ text: adjuster || "Göran Andersson", bold: true, size: 20 })] }),
+                    new Paragraph({ children: [new TextRun({ text: "Mötesordförande / Justerare", size: 17, color: "64748B" })] })
+                  ],
+                  margins: { top: 120, bottom: 120, left: 120, right: 120 }
+                })
+              ]
+            })
+          ]
         })
       );
 
       const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: "Calibri"
+              }
+            }
+          }
+        },
         sections: [{
-          properties: {},
+          properties: {
+            page: {
+              margin: {
+                top: 1000,
+                bottom: 1000,
+                left: 1200,
+                right: 1200
+              }
+            }
+          },
           children: docChildren
         }]
       });
 
       const blob = await Packer.toBlob(doc);
-      const safeNr = (meetingNr || "protokoll").replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `Protokoll_${safeNr}_${meetingDate}.docx`;
-      
+      const filename = `Styrelsemöte_${meetingDate}.docx`;
       saveAs(blob, filename);
+
     } catch (err) {
-      alert("Ett fel inträffade vid skapandet av Word-filen: " + err.message);
+      alert("Fel vid skapandet av Word-filen: " + err.message);
       console.error(err);
     } finally {
-      btn.textContent = "Ladda ner Word-fil (.docx)";
+      btn.textContent = "Ladda ner formaterat protokoll (.docx)";
       btn.disabled = false;
     }
   }
