@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protokollgenerator - BRF Gullvivan</title>
+  <!-- Bibliotek för att skapa äkta .docx-filer i webbläsaren -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #cbd5e1;
+      --text: #0f172a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 30px 15px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    h1 { color: var(--primary); font-size: 1.6rem; margin-bottom: 5px; }
+    p.subtitle { color: #64748b; margin-bottom: 25px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 5px; }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 30px;
+      margin-bottom: 15px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .para-card {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      font-size: 0.95rem;
+      transition: background 0.15s;
+    }
+    .btn-secondary { background: #e2e8f0; color: #1e293b; }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; font-size: 1.05rem; margin-top: 20px; }
+    .btn-primary:hover { background: #172554; }
+    .btn-danger { background: #ef4444; color: #fff; font-size: 0.8rem; padding: 4px 8px; position: absolute; top: 12px; right: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>BRF Gullvivan</h1>
+  <p class="subtitle">Styrelseprotokoll Generator</p>
+
+  <div class="section-title">Mötesinformation</div>
+  <div class="row">
+    <div class="form-group">
+      <label>Mötestyp</label>
+      <input type="text" id="meetingType" value="Ordinarie styrelsemöte">
+    </div>
+    <div class="form-group">
+      <label>Protokoll nr</label>
+      <input type="text" id="meetingNr" placeholder="T.ex. Nr 5 / 2026">
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="form-group">
+      <label>Datum</label>
+      <input type="date" id="meetingDate">
+    </div>
+    <div class="form-group">
+      <label>Tid och Plats</label>
+      <input type="text" id="meetingPlace" placeholder="T.ex. 18:30 – 20:00, Styrelserummet">
+    </div>
+  </div>
+
+  <div class="section-title">Närvarande & Roller</div>
+  <div class="form-group">
+    <label>Närvarande ledamöter & suppleanter</label>
+    <textarea id="attendees" placeholder="Namn, Namn, Namn..."></textarea>
+  </div>
+  <div class="form-group">
+    <label>Frånvarande / Föranmälda förhinder</label>
+    <input type="text" id="absent" placeholder="T.ex. Inga, eller Namn">
+  </div>
+  <div class="row">
+    <div class="form-group">
+      <label>Mötesordförande</label>
+      <input type="text" id="chairman" placeholder="Namn på ordförande">
+    </div>
+    <div class="form-group">
+      <label>Sekreterare (protokollförare)</label>
+      <input type="text" id="secretary" placeholder="Namn på sekreterare">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Justerare</label>
+    <input type="text" id="adjuster" placeholder="Namn på justerare">
+  </div>
+
+  <div class="section-title">Ärenden & Paragrafer</div>
+  <div id="paragraphsContainer">
+    <!-- Fasta standardparagrafer genereras här -->
+  </div>
+
+  <button type="button" class="btn btn-secondary" onclick="addParagraph()">+ Lägg till ärende / paragraf</button>
+
+  <div class="section-title">Slutför</div>
+  <button type="button" class="btn btn-primary" onclick="generateDocx()">Ladda ner Word-fil (.docx)</button>
+</div>
+
+<script>
+  // Dagens datum som förvalt
+  document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
+
+  let paraCount = 0;
+
+  function addParagraph(title = "", content = "") {
+    paraCount++;
+    const container = document.getElementById('paragraphsContainer');
+    const div = document.createElement('div');
+    div.className = 'para-card';
+    div.id = 'para-' + paraCount;
+    div.innerHTML = `
+      <button type="button" class="btn btn-danger" onclick="removeParagraph(${paraCount})">Ta bort</button>
+      <div class="form-group">
+        <label>Paragraf ${paraCount} - Rubrik</label>
+        <input type="text" class="para-title" value="${title}" placeholder="Ärenderubrik">
+      </div>
+      <div class="form-group">
+        <label>Beslut / Anteckning</label>
+        <textarea class="para-text" placeholder="Styrelsen beslöt att...">${content}</textarea>
+      </div>
+    `;
+    container.appendChild(div);
+  }
+
+  function removeParagraph(id) {
+    const el = document.getElementById('para-' + id);
+    if (el) el.remove();
+    renumber();
+  }
+
+  function renumber() {
+    const cards = document.querySelectorAll('.para-card');
+    cards.forEach((card, index) => {
+      const lbl = card.querySelector('label');
+      if (lbl) lbl.textContent = `Paragraf ${index + 1} - Rubrik`;
+    });
+    paraCount = cards.length;
+  }
+
+  // Fyll på med BRF-standardpunkter från start
+  window.addEventListener('DOMContentLoaded', () => {
+    addParagraph("Mötets öppnande", "Ordförande förklarade mötet öppnat och hälsade samtliga välkomna.");
+    addParagraph("Fastställande av dagordning", "Den utsända dagordningen godkändes utan ändringar.");
+    addParagraph("Val av sekreterare och justerare", "Till mötessekreterare valdes [Sekreterare] och till protokolljusterare valdes [Justerare].");
+    addParagraph("Föregående protokoll", "Föregående styrelseprotokoll gicks igenom, lades till handlingarna och godkändes.");
+    addParagraph("Ekonomi och förvaltning", "Kassören/styrelsen rapporterade om det ekonomiska läget.");
+    addParagraph("Fastighet och underhåll", "Lägesrapport gällande pågående och planerade åtgärder i fastigheten.");
+    addParagraph("Övriga frågor", "Inga övriga frågor togs upp.");
+    addParagraph("Mötets avslutande", "Ordförande tackade för visat intresse och förklarade mötet avslutat.");
+  });
+
+  async function generateDocx() {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
+
+    const meetingType = document.getElementById('meetingType').value;
+    const meetingNr = document.getElementById('meetingNr').value || "1";
+    const meetingDate = document.getElementById('meetingDate').value;
+    const meetingPlace = document.getElementById('meetingPlace').value;
+    const attendees = document.getElementById('attendees').value;
+    const absent = document.getElementById('absent').value;
+    const chairman = document.getElementById('chairman').value;
+    const secretary = document.getElementById('secretary').value;
+    const adjuster = document.getElementById('adjuster').value;
+
+    const paraTitles = document.querySelectorAll('.para-title');
+    const paraTexts = document.querySelectorAll('.para-text');
+
+    const docChildren = [
+      new Paragraph({
+        text: "BRF GULLVIVAN",
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 }
+      }),
+      new Paragraph({
+        text: `PROTOKOLL - ${meetingType.toUpperCase()}`,
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Protokoll nr: ", bold: true }),
+          new TextRun(meetingNr),
+          new TextRun({ text: "        Datum: ", bold: true }),
+          new TextRun(meetingDate)
+        ],
+        spacing: { after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Tid och plats: ", bold: true }),
+          new TextRun(meetingPlace)
+        ],
+        spacing: { after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Närvarande: ", bold: true }),
+          new TextRun(attendees || "Inga angivna")
+        ],
+        spacing: { after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Föranmält förhinder: ", bold: true }),
+          new TextRun(absent || "Inga")
+        ],
+        spacing: { after: 300 }
+      })
+    ];
+
+    // Lägg till alla paragrafer
+    paraTitles.forEach((tInput, i) => {
+      const num = i + 1;
+      const title = tInput.value.trim();
+      const body = paraTexts[i].value.trim();
+
+      docChildren.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: `§ ${num} ${title}`, bold: true, size: 24 })
+          ],
+          spacing: { before: 240, after: 100 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: body || "—" })
+          ],
+          spacing: { after: 200 }
+        })
+      );
+    });
+
+    // Signatursektion
+    docChildren.push(
+      new Paragraph({ text: "", spacing: { before: 400, after: 200 } }),
+      new Paragraph({
+        text: "Vid protokollet:",
+        spacing: { after: 400 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun("___________________________          ___________________________"),
+        ]
+      }),
+      new Paragraph({
+        children: [
+          new TextRun(`${secretary || "Sekreterare"} (Sekreterare)`),
+          new TextRun(`                    ${chairman || "Ordförande"} (Mötesordförande)`)
+        ],
+        spacing: { after: 400 }
+      }),
+      new Paragraph({
+        text: "Justeras:",
+        spacing: { after: 400 }
+      }),
+      new Paragraph({
+        text: "___________________________"
+      }),
+      new Paragraph({
+        text: `${adjuster || "Justerare"} (Justerare)`
+      })
+    );
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: docChildren
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const filename = `Protokoll_${meetingNr.replace(/[^a-zA-Z0-9]/g, '_')}_${meetingDate}.docx`;
+    saveAs(blob, filename);
+  }
+</script>
+
+</body>
+</html>
