@@ -4,9 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Protokollgenerator - BRF Gullvivan</title>
-  <!-- Bibliotek för att skapa äkta .docx-filer i webbläsaren -->
-  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  
+  <!-- Stabil webbläsarversion av docx -->
+  <script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
   <style>
     :root {
       --primary: #1e3a8a;
@@ -35,7 +37,7 @@
     p.subtitle { color: #64748b; margin-bottom: 25px; }
     .form-group { margin-bottom: 15px; }
     label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 5px; }
-    input, textarea, select {
+    input, textarea {
       width: 100%;
       padding: 10px;
       border: 1px solid var(--border);
@@ -133,18 +135,15 @@
   </div>
 
   <div class="section-title">Ärenden & Paragrafer</div>
-  <div id="paragraphsContainer">
-    <!-- Fasta standardparagrafer genereras här -->
-  </div>
+  <div id="paragraphsContainer"></div>
 
   <button type="button" class="btn btn-secondary" onclick="addParagraph()">+ Lägg till ärende / paragraf</button>
 
   <div class="section-title">Slutför</div>
-  <button type="button" class="btn btn-primary" onclick="generateDocx()">Ladda ner Word-fil (.docx)</button>
+  <button type="button" id="downloadBtn" class="btn btn-primary" onclick="generateDocx()">Ladda ner Word-fil (.docx)</button>
 </div>
 
 <script>
-  // Dagens datum som förvalt
   document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
 
   let paraCount = 0;
@@ -184,142 +183,158 @@
     paraCount = cards.length;
   }
 
-  // Fyll på med BRF-standardpunkter från start
   window.addEventListener('DOMContentLoaded', () => {
     addParagraph("Mötets öppnande", "Ordförande förklarade mötet öppnat och hälsade samtliga välkomna.");
     addParagraph("Fastställande av dagordning", "Den utsända dagordningen godkändes utan ändringar.");
-    addParagraph("Val av sekreterare och justerare", "Till mötessekreterare valdes [Sekreterare] och till protokolljusterare valdes [Justerare].");
+    addParagraph("Val av sekreterare och justerare", "Till mötessekreterare valdes sekreteraren och till protokolljusterare valdes justeraren.");
     addParagraph("Föregående protokoll", "Föregående styrelseprotokoll gicks igenom, lades till handlingarna och godkändes.");
-    addParagraph("Ekonomi och förvaltning", "Kassören/styrelsen rapporterade om det ekonomiska läget.");
-    addParagraph("Fastighet och underhåll", "Lägesrapport gällande pågående och planerade åtgärder i fastigheten.");
-    addParagraph("Övriga frågor", "Inga övriga frågor togs upp.");
-    addParagraph("Mötets avslutande", "Ordförande tackade för visat intresse och förklarade mötet avslutat.");
+    addParagraph("Ekonomi och förvaltning", "Rapport gällande föreningens löpande ekonomi.");
+    addParagraph("Fastighet och underhåll", "Lägesrapport gällande fastighetens drift och åtgärder.");
+    addParagraph("Övriga frågor", "Inga övriga frågor anmäldes.");
+    addParagraph("Mötets avslutande", "Ordförande tackade de närvarande och avslutade sammanträdet.");
   });
 
   async function generateDocx() {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
+    const btn = document.getElementById('downloadBtn');
+    btn.textContent = "Skapar Word-fil...";
+    btn.disabled = true;
 
-    const meetingType = document.getElementById('meetingType').value;
-    const meetingNr = document.getElementById('meetingNr').value || "1";
-    const meetingDate = document.getElementById('meetingDate').value;
-    const meetingPlace = document.getElementById('meetingPlace').value;
-    const attendees = document.getElementById('attendees').value;
-    const absent = document.getElementById('absent').value;
-    const chairman = document.getElementById('chairman').value;
-    const secretary = document.getElementById('secretary').value;
-    const adjuster = document.getElementById('adjuster').value;
+    try {
+      if (typeof docx === 'undefined') {
+        alert("Kunde inte ladda Word-biblioteket. Kontrollera att webbläsaren tillåter externa skript.");
+        return;
+      }
 
-    const paraTitles = document.querySelectorAll('.para-title');
-    const paraTexts = document.querySelectorAll('.para-text');
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
 
-    const docChildren = [
-      new Paragraph({
-        text: "BRF GULLVIVAN",
-        heading: HeadingLevel.TITLE,
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 120 }
-      }),
-      new Paragraph({
-        text: `PROTOKOLL - ${meetingType.toUpperCase()}`,
-        heading: HeadingLevel.HEADING_1,
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 300 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: "Protokoll nr: ", bold: true }),
-          new TextRun(meetingNr),
-          new TextRun({ text: "        Datum: ", bold: true }),
-          new TextRun(meetingDate)
-        ],
-        spacing: { after: 100 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: "Tid och plats: ", bold: true }),
-          new TextRun(meetingPlace)
-        ],
-        spacing: { after: 100 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: "Närvarande: ", bold: true }),
-          new TextRun(attendees || "Inga angivna")
-        ],
-        spacing: { after: 100 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: "Föranmält förhinder: ", bold: true }),
-          new TextRun(absent || "Inga")
-        ],
-        spacing: { after: 300 }
-      })
-    ];
+      const meetingType = document.getElementById('meetingType').value;
+      const meetingNr = document.getElementById('meetingNr').value || "1";
+      const meetingDate = document.getElementById('meetingDate').value;
+      const meetingPlace = document.getElementById('meetingPlace').value;
+      const attendees = document.getElementById('attendees').value;
+      const absent = document.getElementById('absent').value;
+      const chairman = document.getElementById('chairman').value;
+      const secretary = document.getElementById('secretary').value;
+      const adjuster = document.getElementById('adjuster').value;
 
-    // Lägg till alla paragrafer
-    paraTitles.forEach((tInput, i) => {
-      const num = i + 1;
-      const title = tInput.value.trim();
-      const body = paraTexts[i].value.trim();
+      const paraTitles = document.querySelectorAll('.para-title');
+      const paraTexts = document.querySelectorAll('.para-text');
 
-      docChildren.push(
+      const docChildren = [
         new Paragraph({
-          children: [
-            new TextRun({ text: `§ ${num} ${title}`, bold: true, size: 24 })
-          ],
-          spacing: { before: 240, after: 100 }
+          text: "BRF GULLVIVAN",
+          heading: HeadingLevel.TITLE,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          text: `PROTOKOLL - ${meetingType.toUpperCase()}`,
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: body || "—" })
+            new TextRun({ text: "Protokoll nr: ", bold: true }),
+            new TextRun(meetingNr),
+            new TextRun({ text: "        Datum: ", bold: true }),
+            new TextRun(meetingDate)
           ],
-          spacing: { after: 200 }
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Tid och plats: ", bold: true }),
+            new TextRun(meetingPlace || "—")
+          ],
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Närvarande: ", bold: true }),
+            new TextRun(attendees || "Inga angivna")
+          ],
+          spacing: { after: 120 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Föranmält förhinder: ", bold: true }),
+            new TextRun(absent || "Inga")
+          ],
+          spacing: { after: 300 }
+        })
+      ];
+
+      paraTitles.forEach((tInput, i) => {
+        const num = i + 1;
+        const title = tInput.value.trim();
+        const body = paraTexts[i].value.trim();
+
+        docChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `§ ${num} ${title}`, bold: true, size: 24 })
+            ],
+            spacing: { before: 240, after: 100 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: body || "—" })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+      });
+
+      docChildren.push(
+        new Paragraph({ text: "", spacing: { before: 400, after: 200 } }),
+        new Paragraph({
+          text: "Vid protokollet:",
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun("___________________________          ___________________________")
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun(`${secretary || "Sekreterare"} (Sekreterare)`),
+            new TextRun(`                    ${chairman || "Ordförande"} (Mötesordförande)`)
+          ],
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: "Justeras:",
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          text: "___________________________"
+        }),
+        new Paragraph({
+          text: `${adjuster || "Justerare"} (Justerare)`
         })
       );
-    });
 
-    // Signatursektion
-    docChildren.push(
-      new Paragraph({ text: "", spacing: { before: 400, after: 200 } }),
-      new Paragraph({
-        text: "Vid protokollet:",
-        spacing: { after: 400 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun("___________________________          ___________________________"),
-        ]
-      }),
-      new Paragraph({
-        children: [
-          new TextRun(`${secretary || "Sekreterare"} (Sekreterare)`),
-          new TextRun(`                    ${chairman || "Ordförande"} (Mötesordförande)`)
-        ],
-        spacing: { after: 400 }
-      }),
-      new Paragraph({
-        text: "Justeras:",
-        spacing: { after: 400 }
-      }),
-      new Paragraph({
-        text: "___________________________"
-      }),
-      new Paragraph({
-        text: `${adjuster || "Justerare"} (Justerare)`
-      })
-    );
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: docChildren
+        }]
+      });
 
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: docChildren
-      }]
-    });
-
-    const blob = await Packer.toBlob(doc);
-    const filename = `Protokoll_${meetingNr.replace(/[^a-zA-Z0-9]/g, '_')}_${meetingDate}.docx`;
-    saveAs(blob, filename);
+      const blob = await Packer.toBlob(doc);
+      const safeNr = (meetingNr || "protokoll").replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Protokoll_${safeNr}_${meetingDate}.docx`;
+      
+      saveAs(blob, filename);
+    } catch (err) {
+      alert("Ett fel inträffade vid skapandet av Word-filen: " + err.message);
+      console.error(err);
+    } finally {
+      btn.textContent = "Ladda ner Word-fil (.docx)";
+      btn.disabled = false;
+    }
   }
 </script>
 
