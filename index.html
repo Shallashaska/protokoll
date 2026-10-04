@@ -97,6 +97,7 @@
       border: 1px solid #e2e8f0;
     }
     .person-name { font-size: 0.95rem; font-weight: 500; }
+    .person-actions { display: flex; align-items: center; gap: 6px; }
     .btn-icon {
       background: #ef4444;
       color: #fff;
@@ -118,7 +119,7 @@
       color: #fff;
       border: none;
       border-radius: 4px;
-      padding: 3px 8px;
+      padding: 4px 8px;
       font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
@@ -192,8 +193,8 @@
 
     <!-- Suppleanter -->
     <div class="person-box">
-      <h4>Suppleanter</h4>
-      <p style="font-size:0.8rem; color:#64748b; margin-bottom:8px;">Klicka för att sätta in som beslutande:</p>
+      <h4>Närvarande suppleanter</h4>
+      <p style="font-size:0.8rem; color:#64748b; margin-bottom:8px;">Klicka [ – ] för frånvarande, eller uppgradera:</p>
       <ul id="suppleanterList" class="person-list"></ul>
     </div>
   </div>
@@ -219,10 +220,9 @@
 </div>
 
 <script>
-  // Dagens datum som standard
   document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
 
-  // Närvarande-uppsättning
+  // Fasta listor från start
   let activeAttendees = [
     "Göran Andersson",
     "Robert Zweiniger",
@@ -231,14 +231,18 @@
     "Monica Wiren"
   ];
 
-  let availableSuppleanter = [
+  let activeSuppleanter = [
     "Robert Lindkvist",
     "Lucas Cicic"
   ];
 
   function renderPeople() {
+    // 1. Rendera Beslutande
     const attUl = document.getElementById('attendeesList');
     attUl.innerHTML = '';
+    if (activeAttendees.length === 0) {
+      attUl.innerHTML = '<li style="color:#94a3b8; font-size:0.85rem;">Inga beslutande tillagda</li>';
+    }
     activeAttendees.forEach((person, idx) => {
       const li = document.createElement('li');
       li.className = 'person-item';
@@ -249,14 +253,21 @@
       attUl.appendChild(li);
     });
 
+    // 2. Rendera Suppleanter med BÅDE minus och uppgraderingsknapp
     const supUl = document.getElementById('suppleanterList');
     supUl.innerHTML = '';
-    availableSuppleanter.forEach((person, idx) => {
+    if (activeSuppleanter.length === 0) {
+      supUl.innerHTML = '<li style="color:#94a3b8; font-size:0.85rem;">Inga suppleanter närvarande</li>';
+    }
+    activeSuppleanter.forEach((person, idx) => {
       const li = document.createElement('li');
       li.className = 'person-item';
       li.innerHTML = `
         <span class="person-name">${person}</span>
-        <button type="button" class="btn-promote" onclick="promoteSuppleant(${idx})">+ Gör till beslutande</button>
+        <div class="person-actions">
+          <button type="button" class="btn-promote" title="Gör till tjänstgörande suppleant med rösträtt" onclick="promoteSuppleant(${idx})">Gör till beslutande</button>
+          <button type="button" class="btn-icon" title="Ta bort suppleant (frånvarande)" onclick="removeSuppleant(${idx})">–</button>
+        </div>
       `;
       supUl.appendChild(li);
     });
@@ -264,20 +275,25 @@
 
   function removeAttendee(idx) {
     const removed = activeAttendees.splice(idx, 1)[0];
-    // Om personen var en suppleant som flyttats upp, lägg tillbaka till suppleanter
+    // Om personen ursprungligen var suppleant, flytta tillbaka dit
     if (["Robert Lindkvist", "Lucas Cicic"].includes(removed)) {
-      availableSuppleanter.push(removed);
+      activeSuppleanter.push(removed);
     }
     renderPeople();
   }
 
+  function removeSuppleant(idx) {
+    activeSuppleanter.splice(idx, 1);
+    renderPeople();
+  }
+
   function promoteSuppleant(idx) {
-    const person = availableSuppleanter.splice(idx, 1)[0];
+    const person = activeSuppleanter.splice(idx, 1)[0];
     activeAttendees.push(person);
     renderPeople();
   }
 
-  // Paragrafmallar enligt dina önskemål
+  // Standardparagrafer
   let paraItems = [
     { title: "Mötets öppnande", text: "Göran Andersson öppnade mötet och hälsade alla välkomna." },
     { title: "Dagordning", text: "Den föreslagna dagordningen godkändes." },
@@ -356,7 +372,6 @@
       const secretary = document.getElementById('secretary').value;
       const adjuster = document.getElementById('adjuster').value;
 
-      // Paragrafnumrering
       let prefix = "2026–";
       let startNumber = 82;
       const match = startNrStr.match(/^(.*?)(\d+)$/);
@@ -370,7 +385,7 @@
 
       const docChildren = [];
 
-      // 1. TOPPRUBRIK
+      // 1. TOPPRUBRIK (Gullvivan-stil)
       docChildren.push(
         new Paragraph({
           children: [
@@ -431,7 +446,37 @@
         new Paragraph({ text: "", spacing: { after: 150 } })
       );
 
-      // 3. TVÅSPALTIG TABELL: DAGORDNING & BESLUTANDE NÄRVARANDE
+      // 3. TVÅSPALTIG TABELL: DAGORDNING & BESLUTANDE NÄRVARANDE + NÄRVARANDE SUPPLEANTER
+      const attendeeParagraphs = [];
+
+      // Beslutande
+      activeAttendees.forEach(person => {
+        attendeeParagraphs.push(
+          new Paragraph({
+            children: [new TextRun({ text: person, size: 19 })],
+            spacing: { after: 40 }
+          })
+        );
+      });
+
+      // Om det finns närvarande suppleanter
+      if (activeSuppleanter.length > 0) {
+        attendeeParagraphs.push(
+          new Paragraph({
+            children: [new TextRun({ text: "Närvarande suppleanter:", bold: true, size: 18, color: "475569" })],
+            spacing: { before: 120, after: 40 }
+          })
+        );
+        activeSuppleanter.forEach(sup => {
+          attendeeParagraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: sup, size: 19, italics: true })],
+              spacing: { after: 40 }
+            })
+          );
+        });
+      }
+
       docChildren.push(
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -463,10 +508,7 @@
                   margins: { top: 120, bottom: 120, left: 120, right: 120 }
                 }),
                 new TableCell({
-                  children: activeAttendees.map(person => new Paragraph({
-                    children: [new TextRun({ text: person, size: 19 })],
-                    spacing: { after: 40 }
-                  })),
+                  children: attendeeParagraphs,
                   margins: { top: 120, bottom: 120, left: 120, right: 120 }
                 })
               ]
@@ -517,7 +559,6 @@
             );
           });
         } else {
-          // Tom rad om text lämnats tom
           docChildren.push(
             new Paragraph({
               children: [new TextRun({ text: "", size: 20 })],
