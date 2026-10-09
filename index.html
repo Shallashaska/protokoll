@@ -126,12 +126,15 @@
     }
     .btn-promote:hover { background: var(--primary); }
     
+    .para-wrapper {
+      position: relative;
+      margin-bottom: 15px;
+    }
     .para-card {
       background: #FAFDFA;
       border: 1px solid var(--border);
       padding: 15px;
       border-radius: 8px;
-      margin-bottom: 18px;
       position: relative;
     }
     .subitem-box {
@@ -178,6 +181,28 @@
       cursor: pointer;
     }
     .btn-sub:hover { background: #E2ECE2; }
+
+    /* Knapp för att infoga emellan punkter */
+    .insert-divider {
+      text-align: center;
+      margin: 8px 0;
+    }
+    .btn-insert {
+      background: #E2ECE2;
+      color: var(--primary);
+      border: 1px dashed var(--secondary);
+      border-radius: 14px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      padding: 3px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-insert:hover {
+      background: var(--secondary);
+      color: #fff;
+    }
+
     .btn-primary { background: var(--primary); color: #fff; flex: 2; padding: 14px; font-size: 1.05rem; }
     .btn-primary:hover { background: #143015; }
     .btn-reset { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; flex: 1; padding: 14px; font-size: 0.95rem; }
@@ -238,10 +263,10 @@
     </div>
   </div>
 
-  <div class="section-title">3. Paragrafer & Ärenden (med ev. underpunkter a, b, c)</div>
+  <div class="section-title">3. Paragrafer & Ärenden</div>
   <div id="paragraphsContainer"></div>
 
-  <button type="button" class="btn btn-secondary" onclick="addParagraph()">+ Lägg till ny punkt</button>
+  <button type="button" class="btn btn-secondary" onclick="appendParagraph()">+ Lägg till punkt på slutet</button>
 
   <div class="section-title">Slutför</div>
   <div class="action-row">
@@ -271,27 +296,6 @@
       { title: "Mötets öppnande", text: "Göran Andersson öppnade mötet och hälsade alla välkomna.", subitems: [] },
       { title: "Dagordning", text: "Den föreslagna dagordningen godkändes.", subitems: [] },
       { title: "Protokolljustering", text: "Protokollet från styrelsemötet xxxx-xx-xx lästes upp och godkändes.", subitems: [] },
-      { 
-        title: "Rapporter", 
-        text: "", 
-        subitems: [
-          { title: "Kärlskåp", text: "" },
-          { title: "Garagekontrakt", text: "" }
-        ] 
-      },
-      { 
-        title: "Ekonomi", 
-        text: "", 
-        subitems: [
-          { title: "Offert från Vesam", text: "" },
-          { title: "Nya villkor lån", text: "" },
-          { title: "Offert Presto", text: "" }
-        ] 
-      },
-      { title: "Störningsjour", text: "", subitems: [] },
-      { title: "Sopkasuner", text: "", subitems: [] },
-      { title: "Andrahandsuthyrning", text: "", subitems: [] },
-      { title: "Nya frågor", text: "", subitems: [] },
       { title: "Nästa styrelsemöte", text: "I föreningslokalen xxxx-xx-xx kl. xx:xx.", subitems: [] },
       { title: "Avslutning", text: "Ordförande tackade de närvarande för visat intresse och förklarade mötet avslutat.", subitems: [] }
     ];
@@ -358,12 +362,11 @@
   function renderParagraphs() {
     const container = document.getElementById('paragraphsContainer');
     container.innerHTML = '';
-    paraItems.forEach((p, idx) => {
-      const div = document.createElement('div');
-      div.className = 'para-card';
-      div.id = 'para-' + idx;
 
-      // Rendera underpunkter om några finns
+    paraItems.forEach((p, idx) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'para-wrapper';
+
       let subitemsHtml = '';
       if (p.subitems && p.subitems.length > 0) {
         subitemsHtml = p.subitems.map((sub, sIdx) => {
@@ -385,28 +388,41 @@
         }).join('');
       }
 
-      div.innerHTML = `
-        <button type="button" class="btn btn-danger" onclick="removeParagraph(${idx})">Ta bort punkt</button>
-        <div class="form-group">
-          <label>Punkt ${idx + 1} - Huvudrubrik</label>
-          <input type="text" class="para-title-${idx}" value="${p.title}">
-        </div>
-        ${(!p.subitems || p.subitems.length === 0) ? `
+      wrapper.innerHTML = `
+        <div class="para-card" id="para-${idx}">
+          <button type="button" class="btn btn-danger" onclick="removeParagraph(${idx})">Ta bort punkt</button>
           <div class="form-group">
-            <label>Beslut / Anteckningar</label>
-            <textarea class="para-text-${idx}" rows="3" placeholder="Lämna blank eller skriv beslut...">${p.text}</textarea>
+            <label>Punkt ${idx + 1} - Huvudrubrik</label>
+            <input type="text" class="para-title-${idx}" value="${p.title}">
           </div>
-        ` : ''}
-        
-        <div id="subitems-container-${idx}">${subitemsHtml}</div>
-        
-        <button type="button" class="btn-sub" onclick="addSubitem(${idx})">+ Lägg till underpunkt (a, b, c)</button>
+          ${(!p.subitems || p.subitems.length === 0) ? `
+            <div class="form-group">
+              <label>Beslut / Anteckningar</label>
+              <textarea class="para-text-${idx}" rows="3" placeholder="Lämna blank eller skriv beslut...">${p.text}</textarea>
+            </div>
+          ` : ''}
+          
+          <div id="subitems-container-${idx}">${subitemsHtml}</div>
+          
+          <button type="button" class="btn btn-sub" onclick="addSubitem(${idx})">+ Lägg till underpunkt (a, b, c)</button>
+        </div>
+
+        <div class="insert-divider">
+          <button type="button" class="btn-insert" onclick="insertParagraphAt(${idx + 1})">+ Infoga punkt här</button>
+        </div>
       `;
-      container.appendChild(div);
+      container.appendChild(wrapper);
     });
   }
 
-  function addParagraph() {
+  // Lägg till ny punkt på specifik position
+  function insertParagraphAt(index) {
+    saveCurrentInputs();
+    paraItems.splice(index, 0, { title: "Ny punkt", text: "", subitems: [] });
+    renderParagraphs();
+  }
+
+  function appendParagraph() {
     saveCurrentInputs();
     paraItems.push({ title: "Ny punkt", text: "", subitems: [] });
     renderParagraphs();
@@ -512,7 +528,6 @@
         startNumber = parseInt(match[2], 10);
       }
 
-      // Bygg dagordningspunkter inklusive a), b), c)
       const agendaParagraphs = [];
       paraItems.forEach((p, i) => {
         agendaParagraphs.push(
@@ -557,7 +572,6 @@
         activeSuppleanter.forEach(s => attendees.push(s));
       }
 
-      // Paragraf-sektion
       const paragraphElements = [];
       paraItems.forEach((p, idx) => {
         const currentParaNr = `${prefix}${startNumber + idx}`;
