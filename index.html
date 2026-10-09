@@ -146,9 +146,17 @@
     }
     .btn-secondary { background: #E2ECE2; color: #1E4620; }
     .btn-secondary:hover { background: #D5E2D5; }
-    .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; font-size: 1.05rem; margin-top: 25px; }
+    .btn-primary { background: var(--primary); color: #fff; flex: 2; padding: 14px; font-size: 1.05rem; }
     .btn-primary:hover { background: #143015; }
+    .btn-reset { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; flex: 1; padding: 14px; font-size: 0.95rem; }
+    .btn-reset:hover { background: #fecaca; }
     .btn-danger { background: #ef4444; color: #fff; font-size: 0.8rem; padding: 4px 8px; position: absolute; top: 12px; right: 12px; }
+
+    .action-row {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+    }
   </style>
 </head>
 <body>
@@ -203,13 +211,14 @@
   <button type="button" class="btn btn-secondary" onclick="addParagraph()">+ Lägg till paragraf</button>
 
   <div class="section-title">Slutför</div>
-  <button type="button" id="downloadBtn" class="btn btn-primary" onclick="generateDocx()">Ladda ner Word-fil (.docx)</button>
+  <div class="action-row">
+    <button type="button" class="btn btn-reset" onclick="resetForm()">Töm / Återställ formulär</button>
+    <button type="button" id="downloadBtn" class="btn btn-primary" onclick="generateDocx()">Ladda ner Word-fil (.docx)</button>
+  </div>
 </div>
 
 <script>
-  document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
-
-  let activeAttendees = [
+  const DEFAULT_ATTENDEES = [
     "Göran Andersson",
     "Robert Zweiniger",
     "Mikko Virkkunen",
@@ -217,10 +226,30 @@
     "Monica Wiren"
   ];
 
-  let activeSuppleanter = [
+  const DEFAULT_SUPPLEANTER = [
     "Robert Lindkvist",
     "Lucas Cicic"
   ];
+
+  function getDefaultParagraphs() {
+    return [
+      { title: "Mötets öppnande", text: "Göran Andersson öppnade mötet och hälsade alla välkomna." },
+      { title: "Dagordning", text: "Den föreslagna dagordningen godkändes." },
+      { title: "Protokolljustering", text: "Protokollet från styrelsemötet xxxx-xx-xx lästes upp och godkändes." },
+      { title: "Rapporter", text: "" },
+      { title: "Ekonomi", text: "" },
+      { title: "Störningsjour", text: "" },
+      { title: "Sopkasuner", text: "" },
+      { title: "Andrahandsuthyrning", text: "" },
+      { title: "Nya frågor", text: "" },
+      { title: "Nästa styrelsemöte", text: "I föreningslokalen xxxx-xx-xx kl. xx:xx." },
+      { title: "Avslutning", text: "Ordförande tackade de närvarande för visat intresse och förklarade mötet avslutat." }
+    ];
+  }
+
+  let activeAttendees = [...DEFAULT_ATTENDEES];
+  let activeSuppleanter = [...DEFAULT_SUPPLEANTER];
+  let paraItems = getDefaultParagraphs();
 
   function renderPeople() {
     const attUl = document.getElementById('attendeesList');
@@ -259,7 +288,7 @@
 
   function removeAttendee(idx) {
     const removed = activeAttendees.splice(idx, 1)[0];
-    if (["Robert Lindkvist", "Lucas Cicic"].includes(removed)) {
+    if (DEFAULT_SUPPLEANTER.includes(removed)) {
       activeSuppleanter.push(removed);
     }
     renderPeople();
@@ -275,20 +304,6 @@
     activeAttendees.push(person);
     renderPeople();
   }
-
-  let paraItems = [
-    { title: "Mötets öppnande", text: "Göran Andersson öppnade mötet och hälsade alla välkomna." },
-    { title: "Dagordning", text: "Den föreslagna dagordningen godkändes." },
-    { title: "Protokolljustering", text: "Protokollet från styrelsemötet xxxx-xx-xx lästes upp och godkändes." },
-    { title: "Rapporter", text: "" },
-    { title: "Ekonomi", text: "" },
-    { title: "Störningsjour", text: "" },
-    { title: "Sopkasuner", text: "" },
-    { title: "Andrahandsuthyrning", text: "" },
-    { title: "Nya frågor", text: "" },
-    { title: "Nästa styrelsemöte", text: "I föreningslokalen xxxx-xx-xx kl. xx:xx." },
-    { title: "Avslutning", text: "Ordförande tackade de närvarande för visat intresse och förklarade mötet avslutat." }
-  ];
 
   function renderParagraphs() {
     const container = document.getElementById('paragraphsContainer');
@@ -335,7 +350,24 @@
     });
   }
 
+  // Töm / Återställ formulär
+  function resetForm() {
+    if (confirm("Är du säker på att du vill återställa formuläret? Alla inskrivna texter raderas och standardlistorna återställs.")) {
+      document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
+      document.getElementById('secretary').value = "Mikko Virkkunen";
+      document.getElementById('chair').value = "Göran Andersson";
+      
+      activeAttendees = [...DEFAULT_ATTENDEES];
+      activeSuppleanter = [...DEFAULT_SUPPLEANTER];
+      paraItems = getDefaultParagraphs();
+
+      renderPeople();
+      renderParagraphs();
+    }
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
     renderPeople();
     renderParagraphs();
   });
@@ -360,18 +392,17 @@
         ShadingType
       } = docx;
 
-      const COLOR_PRIMARY = "1E4620"; // Skogsgrön
+      const COLOR_PRIMARY = "1E4620";
       const COLOR_SECONDARY = "406343";
       const COLOR_MUTED = "556655";
       const COLOR_BG_LIGHT = "F2F6F2";
       const COLOR_BOX_BORDER = "D5E2D5";
 
-      const meetingDate = document.getElementById('meetingDate').value || "2026-09-17";
+      const meetingDate = document.getElementById('meetingDate').value || new Date().toISOString().substring(0, 10);
       const startNrStr = document.getElementById('startNr').value || "2026–82";
       const secretary = document.getElementById('secretary').value;
       const chair = document.getElementById('chair').value;
 
-      // Paragrafnummerhantering
       let prefix = "2026–";
       let startNumber = 82;
       const match = startNrStr.match(/^(.*?)(\d+)$/);
@@ -380,13 +411,11 @@
         startNumber = parseInt(match[2], 10);
       }
 
-      // Förbered dagordningspunkter
       const agenda = paraItems.map((p, i) => `${i + 1}. ${p.title}`);
 
-      // Förbered närvarolista
       const attendees = [...activeAttendees];
       if (activeSuppleanter.length > 0) {
-        attendees.push(""); // tom rad som distans
+        attendees.push("");
         attendees.push("Närvarande suppleanter:");
         activeSuppleanter.forEach(s => attendees.push(s));
       }
@@ -397,9 +426,9 @@
             properties: {
               page: {
                 margin: {
-                  top: 1008, // ~0.7 inch
+                  top: 1008,
                   bottom: 1008,
-                  left: 1152, // ~0.8 inch
+                  left: 1152,
                   right: 1152
                 }
               }
@@ -412,7 +441,7 @@
                   new TextRun({
                     text: "STYRELSEPROTOKOLL",
                     bold: true,
-                    size: 36, // 18pt
+                    size: 36,
                     color: COLOR_PRIMARY,
                     font: "Arial"
                   })
@@ -424,7 +453,7 @@
                   new TextRun({
                     text: "Bostadsrättsföreningen Gullvivan  |  Katrineholm Gullvivan 5",
                     bold: true,
-                    size: 21, // 10.5pt
+                    size: 21,
                     color: COLOR_SECONDARY,
                     font: "Arial"
                   })
@@ -435,7 +464,7 @@
                 border: {
                   bottom: {
                     style: BorderStyle.SINGLE,
-                    size: 12, // 1.5 pt
+                    size: 12,
                     color: COLOR_PRIMARY,
                     space: 8
                   }
@@ -443,20 +472,19 @@
                 children: [
                   new TextRun({
                     text: `Org.nr: 718500-0523  •  Malmgatan 2, 4 och 6  •  Sammanträdesdatum: ${meetingDate}`,
-                    size: 18, // 9pt
+                    size: 18,
                     color: COLOR_MUTED,
                     font: "Arial"
                   })
                 ]
               }),
 
-              // 2. FORMALIA-BOX (DAGORDNING & NÄRVARANDE)
+              // 2. FORMALIA-BOX
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
                   new TableRow({
                     children: [
-                      // Vänster: Dagordning
                       new TableCell({
                         width: { size: 52, type: WidthType.PERCENTAGE },
                         shading: { fill: COLOR_BG_LIGHT, type: ShadingType.CLEAR },
@@ -487,7 +515,7 @@
                                 children: [
                                   new TextRun({
                                     text: item,
-                                    size: 16, // 8pt
+                                    size: 16,
                                     color: "334433",
                                     font: "Arial"
                                   })
@@ -496,8 +524,6 @@
                           )
                         ]
                       }),
-
-                      // Höger: Närvarande
                       new TableCell({
                         width: { size: 48, type: WidthType.PERCENTAGE },
                         shading: { fill: COLOR_BG_LIGHT, type: ShadingType.CLEAR },
@@ -559,7 +585,7 @@
                       new TextRun({
                         text: `${currentParaNr}  ${p.title}`,
                         bold: true,
-                        size: 20, // 10pt
+                        size: 20,
                         color: COLOR_PRIMARY,
                         font: "Arial"
                       })
@@ -568,11 +594,11 @@
                   ...lines.map(line => 
                     new Paragraph({
                       spacing: { before: 20, after: 60 },
-                      lineSpacing: 276, // 1.15 radavstånd
+                      lineSpacing: 276,
                       children: [
                         new TextRun({
                           text: line,
-                          size: 19, // 9.5pt
+                          size: 19,
                           color: "223322",
                           font: "Arial"
                         })
@@ -584,7 +610,7 @@
 
               new Paragraph({ spacing: { before: 160, after: 0 } }),
 
-              // 4. UNDERSKRIFTSBLOCK
+              // 4. UNDERSKRIFTER
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
