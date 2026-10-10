@@ -26,7 +26,7 @@
       line-height: 1.5;
     }
     .container {
-      max-width: 880px;
+      max-width: 960px;
       margin: 0 auto;
       background: var(--card);
       padding: 30px;
@@ -97,18 +97,18 @@
     .person-box h4 { font-size: 0.92rem; color: var(--primary); margin-bottom: 8px; }
     .person-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
     .person-item {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;
       background: #fff; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
     }
     .person-name { font-size: 0.92rem; font-weight: 500; }
-    .person-actions { display: flex; align-items: center; gap: 6px; }
+    .person-actions { display: flex; align-items: center; gap: 4px; }
     .btn-icon {
       background: #ef4444; color: #fff; border: none; border-radius: 4px; width: 24px; height: 24px;
       font-weight: bold; font-size: 16px; line-height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
     .btn-icon:hover { background: #dc2626; }
     .btn-promote {
-      background: var(--secondary); color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.78rem; font-weight: bold; cursor: pointer;
+      background: var(--secondary); color: #fff; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.72rem; font-weight: bold; cursor: pointer;
     }
     .btn-promote:hover { background: var(--primary); }
     .add-person-row { display: flex; gap: 8px; }
@@ -174,24 +174,37 @@
   </div>
 
   <div class="section-title">2. Närvarande & Roller</div>
-  <div class="row">
+  <div class="row-3">
+    <!-- Beslutande -->
     <div class="person-box">
-      <h4>Beslutande närvarande</h4>
-      <p style="font-size:0.78rem; color:#556655; margin-bottom:8px;">Klicka [ – ] för att ta bort om personen ej deltar:</p>
+      <h4>NÄRVARANDE</h4>
+      <p style="font-size:0.75rem; color:#556655; margin-bottom:8px;">Klicka [ – ] för att flytta till Frånvarande:</p>
       <ul id="attendeesList" class="person-list"></ul>
       <div class="add-person-row">
-        <input type="text" id="newAttendee" placeholder="Namn på gäst/ny ledamot..." onkeydown="if(event.key==='Enter') addPerson('attendee')">
-        <button type="button" class="btn btn-secondary" style="padding: 6px 12px;" onclick="addPerson('attendee')">+</button>
+        <input type="text" id="newAttendee" placeholder="Lägg till ordinarie..." onkeydown="if(event.key==='Enter') addPerson('attendee')">
+        <button type="button" class="btn btn-secondary" style="padding: 6px 10px;" onclick="addPerson('attendee')">+</button>
       </div>
     </div>
 
+    <!-- Suppleanter -->
     <div class="person-box">
       <h4>Närvarande suppleanter</h4>
-      <p style="font-size:0.78rem; color:#556655; margin-bottom:8px;">Klicka [ – ] för frånvarande, eller uppgradera:</p>
+      <p style="font-size:0.75rem; color:#556655; margin-bottom:8px;">Uppgradera eller flytta till Frånvarande:</p>
       <ul id="suppleanterList" class="person-list"></ul>
       <div class="add-person-row">
-        <input type="text" id="newSuppleant" placeholder="Namn på ny suppleant..." onkeydown="if(event.key==='Enter') addPerson('suppleant')">
-        <button type="button" class="btn btn-secondary" style="padding: 6px 12px;" onclick="addPerson('suppleant')">+</button>
+        <input type="text" id="newSuppleant" placeholder="Lägg till suppleant..." onkeydown="if(event.key==='Enter') addPerson('suppleant')">
+        <button type="button" class="btn btn-secondary" style="padding: 6px 10px;" onclick="addPerson('suppleant')">+</button>
+      </div>
+    </div>
+
+    <!-- Frånvarande -->
+    <div class="person-box">
+      <h4>Frånvarande (Förhinder)</h4>
+      <p style="font-size:0.75rem; color:#556655; margin-bottom:8px;">Flytta tillbaka eller ta bort helt (X):</p>
+      <ul id="absentList" class="person-list"></ul>
+      <div class="add-person-row">
+        <input type="text" id="newAbsent" placeholder="Lägg till frånvarande..." onkeydown="if(event.key==='Enter') addPerson('absent')">
+        <button type="button" class="btn btn-secondary" style="padding: 6px 10px;" onclick="addPerson('absent')">+</button>
       </div>
     </div>
   </div>
@@ -233,6 +246,7 @@
 
   const DEFAULT_ATTENDEES = ["Göran Andersson", "Robert Zweiniger", "Mikko Virkkunen", "Urban Ehrlin", "Monica Wiren"];
   const DEFAULT_SUPPLEANTER = ["Robert Lindkvist", "Lucas Cicic"];
+  const DEFAULT_ABSENT = [];
 
   function getDefaultParagraphs() {
     return [
@@ -246,16 +260,15 @@
 
   let activeAttendees = [];
   let activeSuppleanter = [];
+  let absentMembers = [];
   let paraItems = [];
   let saveTimeout;
 
-  // Auto-expand Textarea
   function autoExpand(el) {
     el.style.height = 'auto';
     el.style.height = (el.scrollHeight) + 'px';
   }
 
-  // LocalStorage & Autosave
   function saveStateDebounced() {
     clearTimeout(saveTimeout);
     document.getElementById('saveIndicator').textContent = "Sparar...";
@@ -275,6 +288,7 @@
       chair: document.getElementById('chair').value,
       attendees: activeAttendees,
       suppleanter: activeSuppleanter,
+      absent: absentMembers,
       paraItems: paraItems
     };
     localStorage.setItem('brfGullvivanProtocol', JSON.stringify(state));
@@ -300,19 +314,13 @@
     
     activeAttendees = state.attendees || [...DEFAULT_ATTENDEES];
     activeSuppleanter = state.suppleanter || [...DEFAULT_SUPPLEANTER];
+    absentMembers = state.absent || [...DEFAULT_ABSENT];
     
-    // Normalisera äldre arrayer (om 'text' finns istället för background)
     paraItems = (state.paraItems || getDefaultParagraphs()).map(p => {
-      if(p.background === undefined) {
-        p.background = p.text || "";
-        p.decision = "";
-      }
+      if(p.background === undefined) { p.background = p.text || ""; p.decision = ""; }
       if(p.subitems) {
         p.subitems = p.subitems.map(sub => {
-          if(sub.background === undefined) {
-            sub.background = sub.text || "";
-            sub.decision = "";
-          }
+          if(sub.background === undefined) { sub.background = sub.text || ""; sub.decision = ""; }
           return sub;
         });
       }
@@ -321,7 +329,6 @@
 
     renderPeople();
     
-    // Återställ rullistor
     if(state.secretary && activeAttendees.includes(state.secretary)) document.getElementById('secretary').value = state.secretary;
     if(state.adjuster && activeAttendees.includes(state.adjuster)) document.getElementById('adjuster').value = state.adjuster;
     if(state.chair && activeAttendees.includes(state.chair)) document.getElementById('chair').value = state.chair;
@@ -329,7 +336,6 @@
     renderParagraphs();
   }
 
-  // Exportera / Importera JSON
   function exportDraft() {
     saveCurrentInputs();
     const state = {
@@ -340,6 +346,7 @@
       chair: document.getElementById('chair').value,
       attendees: activeAttendees,
       suppleanter: activeSuppleanter,
+      absent: absentMembers,
       paraItems: paraItems
     };
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -361,36 +368,58 @@
       }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Nollställ input
+    event.target.value = '';
   }
 
-  // Hantering av personer
+  // --- NÄRVAROHANTERING ---
   function renderPeople() {
+    // Rendera Beslutande
     const attUl = document.getElementById('attendeesList');
     attUl.innerHTML = '';
+    if (activeAttendees.length === 0) attUl.innerHTML = '<li style="color:#778877; font-size:0.85rem;">Inga beslutande</li>';
     activeAttendees.forEach((person, idx) => {
       const li = document.createElement('li');
       li.className = 'person-item';
       li.innerHTML = `
         <span class="person-name">${person}</span>
-        <button type="button" class="btn-icon" title="Ta bort" onclick="removeAttendee(${idx})">–</button>
+        <button type="button" class="btn-icon" title="Flytta till Frånvarande" onclick="moveToAbsent('attendee', ${idx})">–</button>
       `;
       attUl.appendChild(li);
     });
 
+    // Rendera Suppleanter
     const supUl = document.getElementById('suppleanterList');
     supUl.innerHTML = '';
+    if (activeSuppleanter.length === 0) supUl.innerHTML = '<li style="color:#778877; font-size:0.85rem;">Inga suppleanter</li>';
     activeSuppleanter.forEach((person, idx) => {
       const li = document.createElement('li');
       li.className = 'person-item';
       li.innerHTML = `
         <span class="person-name">${person}</span>
         <div class="person-actions">
-          <button type="button" class="btn-promote" title="Gör till beslutande" onclick="promoteSuppleant(${idx})">Gör till beslutande</button>
-          <button type="button" class="btn-icon" title="Ta bort" onclick="removeSuppleant(${idx})">–</button>
+          <button type="button" class="btn-promote" title="Gör till beslutande" onclick="promoteToAttendee(${idx})">Gör beslutande</button>
+          <button type="button" class="btn-icon" title="Flytta till Frånvarande" onclick="moveToAbsent('suppleant', ${idx})">–</button>
         </div>
       `;
       supUl.appendChild(li);
+    });
+
+    // Rendera Frånvarande
+    const absUl = document.getElementById('absentList');
+    absUl.innerHTML = '';
+    if (absentMembers.length === 0) absUl.innerHTML = '<li style="color:#778877; font-size:0.85rem;">Inga frånvarande</li>';
+    absentMembers.forEach((person, idx) => {
+      const li = document.createElement('li');
+      li.className = 'person-item';
+      li.innerHTML = `
+        <span class="person-name" style="color:#94a3b8; text-decoration:line-through;">${person}</span>
+        <div class="person-actions">
+          <button type="button" class="btn-promote" title="Flytta tillbaka till Beslutande" onclick="restoreFromAbsent('attendee', ${idx})">B</button>
+          <button type="button" class="btn-promote" style="background:#10b981;" title="Flytta tillbaka till Suppleant" onclick="restoreFromAbsent('suppleant', ${idx})">S</button>
+          <button type="button" class="btn-icon" style="background:#333;" title="Ta bort helt" onclick="deleteAbsent(${idx})">X</button>
+        </div>
+      `;
+      absUl.appendChild(li);
     });
 
     updateRoleDropdowns();
@@ -403,60 +432,63 @@
 
     const optionsHtml = activeAttendees.map(a => `<option value="${a}">${a}</option>`).join('');
     
-    const secEl = document.getElementById('secretary');
-    const adjEl = document.getElementById('adjuster');
-    const chEl = document.getElementById('chair');
+    document.getElementById('secretary').innerHTML = optionsHtml;
+    document.getElementById('adjuster').innerHTML = optionsHtml;
+    document.getElementById('chair').innerHTML = optionsHtml;
 
-    secEl.innerHTML = optionsHtml;
-    adjEl.innerHTML = optionsHtml;
-    chEl.innerHTML = optionsHtml;
-
-    if (activeAttendees.includes(sec)) secEl.value = sec;
-    if (activeAttendees.includes(adj)) adjEl.value = adj;
-    if (activeAttendees.includes(ch)) chEl.value = ch;
+    if (activeAttendees.includes(sec)) document.getElementById('secretary').value = sec;
+    if (activeAttendees.includes(adj)) document.getElementById('adjuster').value = adj;
+    if (activeAttendees.includes(ch)) document.getElementById('chair').value = ch;
   }
 
   function addPerson(type) {
     if (type === 'attendee') {
       const input = document.getElementById('newAttendee');
-      if (input.value.trim()) {
-        activeAttendees.push(input.value.trim());
-        input.value = '';
-        renderPeople();
-        saveStateDebounced();
-      }
-    } else {
+      if (input.value.trim()) { activeAttendees.push(input.value.trim()); input.value = ''; }
+    } else if (type === 'suppleant') {
       const input = document.getElementById('newSuppleant');
-      if (input.value.trim()) {
-        activeSuppleanter.push(input.value.trim());
-        input.value = '';
-        renderPeople();
-        saveStateDebounced();
-      }
+      if (input.value.trim()) { activeSuppleanter.push(input.value.trim()); input.value = ''; }
+    } else if (type === 'absent') {
+      const input = document.getElementById('newAbsent');
+      if (input.value.trim()) { absentMembers.push(input.value.trim()); input.value = ''; }
     }
-  }
-
-  function removeAttendee(idx) {
-    const removed = activeAttendees.splice(idx, 1)[0];
-    if (DEFAULT_SUPPLEANTER.includes(removed)) activeSuppleanter.push(removed);
     renderPeople();
     saveStateDebounced();
   }
 
-  function removeSuppleant(idx) {
-    activeSuppleanter.splice(idx, 1);
+  function moveToAbsent(fromType, idx) {
+    if (fromType === 'attendee') {
+      absentMembers.push(activeAttendees.splice(idx, 1)[0]);
+    } else {
+      absentMembers.push(activeSuppleanter.splice(idx, 1)[0]);
+    }
     renderPeople();
     saveStateDebounced();
   }
 
-  function promoteSuppleant(idx) {
-    const person = activeSuppleanter.splice(idx, 1)[0];
-    activeAttendees.push(person);
+  function promoteToAttendee(idx) {
+    activeAttendees.push(activeSuppleanter.splice(idx, 1)[0]);
     renderPeople();
     saveStateDebounced();
   }
 
-  // Hantering av paragrafer
+  function restoreFromAbsent(toType, idx) {
+    if (toType === 'attendee') {
+      activeAttendees.push(absentMembers.splice(idx, 1)[0]);
+    } else {
+      activeSuppleanter.push(absentMembers.splice(idx, 1)[0]);
+    }
+    renderPeople();
+    saveStateDebounced();
+  }
+
+  function deleteAbsent(idx) {
+    absentMembers.splice(idx, 1);
+    renderPeople();
+    saveStateDebounced();
+  }
+
+  // --- PARAGRAFHANTERING ---
   function renderParagraphs() {
     const container = document.getElementById('paragraphsContainer');
     container.innerHTML = '';
@@ -523,10 +555,7 @@
       container.appendChild(wrapper);
     });
 
-    // Expandera alla aktiva textareas efter render
-    setTimeout(() => {
-      document.querySelectorAll('textarea').forEach(el => autoExpand(el));
-    }, 0);
+    setTimeout(() => { document.querySelectorAll('textarea').forEach(el => autoExpand(el)); }, 0);
   }
 
   function moveUp(idx) {
@@ -617,6 +646,7 @@
       
       activeAttendees = [...DEFAULT_ATTENDEES];
       activeSuppleanter = [...DEFAULT_SUPPLEANTER];
+      absentMembers = [...DEFAULT_ABSENT];
       paraItems = getDefaultParagraphs();
 
       renderPeople();
@@ -631,16 +661,16 @@
     }
   }
 
-  // Initiering
   window.addEventListener('DOMContentLoaded', () => {
     if (!loadFromLocalStorage()) {
       document.getElementById('meetingDate').value = new Date().toISOString().substring(0, 10);
       activeAttendees = [...DEFAULT_ATTENDEES];
       activeSuppleanter = [...DEFAULT_SUPPLEANTER];
+      absentMembers = [...DEFAULT_ABSENT];
       paraItems = getDefaultParagraphs();
       
       renderPeople();
-      // Standardval om de finns i listan
+      
       const secEl = document.getElementById('secretary');
       const adjEl = document.getElementById('adjuster');
       const chEl = document.getElementById('chair');
@@ -653,277 +683,4 @@
     }
   });
 
-  // Skapa Word (docx)
-  async function generateDocx() {
-    saveCurrentInputs();
-    saveToLocalStorage();
-    
-    const btn = document.getElementById('downloadBtn');
-    btn.textContent = "Skapar Word-fil...";
-    btn.disabled = true;
-
-    try {
-      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, Footer, AlignmentType, PageNumber } = docx;
-
-      const COLOR_PRIMARY = "1E4620";
-      const COLOR_SECONDARY = "406343";
-      const COLOR_MUTED = "556655";
-      const COLOR_BG_LIGHT = "F2F6F2";
-      const COLOR_BOX_BORDER = "D5E2D5";
-
-      const meetingDate = document.getElementById('meetingDate').value || new Date().toISOString().substring(0, 10);
-      const startNrStr = document.getElementById('startNr').value.trim() || "2026–82";
-      const secretary = document.getElementById('secretary').value;
-      const adjuster = document.getElementById('adjuster').value;
-      const chair = document.getElementById('chair').value;
-
-      // Flexibel numrerings-Regex
-      let prefix = "2026–";
-      let startNumber = 82;
-      const match = startNrStr.match(/^(.*?)(\d+)$/);
-      if (match) {
-        prefix = match[1];
-        startNumber = parseInt(match[2], 10);
-      }
-
-      const agendaParagraphs = [];
-      paraItems.forEach((p, i) => {
-        agendaParagraphs.push(
-          new Paragraph({
-            spacing: { after: 20 },
-            children: [
-              new TextRun({ text: `${i + 1}. ${p.title}`, size: 16, bold: p.subitems && p.subitems.length > 0, color: "334433", font: "Arial" })
-            ]
-          })
-        );
-        if (p.subitems && p.subitems.length > 0) {
-          p.subitems.forEach((sub, sIdx) => {
-            const letter = LETTERS[sIdx] || `${sIdx + 1}`;
-            agendaParagraphs.push(
-              new Paragraph({
-                spacing: { after: 15 }, indent: { left: 240 },
-                children: [
-                  new TextRun({ text: `${letter}) ${sub.title}`, size: 15, color: "556655", font: "Arial" })
-                ]
-              })
-            );
-          });
-        }
-      });
-
-      const attendees = [...activeAttendees];
-      if (activeSuppleanter.length > 0) {
-        attendees.push("");
-        attendees.push("Närvarande suppleanter:");
-        activeSuppleanter.forEach(s => attendees.push(s));
-      }
-
-      // Helper för att lägga till stycken om text finns
-      const addTextLines = (container, text, isDecision = false) => {
-        if (!text || !text.trim()) return;
-        const lines = text.split('\n');
-        
-        if (isDecision) {
-           container.push(
-            new Paragraph({
-              spacing: { before: 20, after: 60 },
-              lineSpacing: 276,
-              children: [
-                new TextRun({ text: "Beslut: ", bold: true, size: 19, color: "1E4620", font: "Arial" }),
-                new TextRun({ text: text.trim(), bold: true, size: 19, color: "223322", font: "Arial" })
-              ]
-            })
-          );
-        } else {
-          lines.forEach(line => {
-            if(!line.trim()) return;
-            container.push(
-              new Paragraph({
-                spacing: { before: 20, after: 60 },
-                lineSpacing: 276,
-                children: [
-                  new TextRun({ text: line, size: 19, color: "223322", font: "Arial" })
-                ]
-              })
-            );
-          });
-        }
-      };
-
-      const paragraphElements = [];
-      paraItems.forEach((p, idx) => {
-        const currentParaNr = `${prefix}${startNumber + idx}`;
-        paragraphElements.push(
-          new Paragraph({
-            spacing: { before: 180, after: 60 },
-            keepWithNext: true,
-            children: [
-              new TextRun({ text: `${currentParaNr}  ${p.title}`, bold: true, size: 20, color: COLOR_PRIMARY, font: "Arial" })
-            ]
-          })
-        );
-
-        if (p.subitems && p.subitems.length > 0) {
-          p.subitems.forEach((sub, sIdx) => {
-            const letter = LETTERS[sIdx] || `${sIdx + 1}`;
-            paragraphElements.push(
-              new Paragraph({
-                spacing: { before: 100, after: 40 },
-                children: [
-                  new TextRun({ text: `${letter}) ${sub.title}`, bold: true, size: 19, color: COLOR_SECONDARY, font: "Arial" })
-                ]
-              })
-            );
-            addTextLines(paragraphElements, sub.background, false);
-            addTextLines(paragraphElements, sub.decision, true);
-          });
-        } else {
-          addTextLines(paragraphElements, p.background, false);
-          addTextLines(paragraphElements, p.decision, true);
-        }
-      });
-
-      const doc = new Document({
-        sections: [
-          {
-            properties: {
-              page: {
-                margin: { top: 1008, bottom: 1008, left: 1152, right: 1152 }
-              }
-            },
-            footers: {
-              default: new Footer({
-                children: [
-                  new Paragraph({
-                    alignment: AlignmentType.CENTER,
-                    children: [
-                      new TextRun({ text: "Sida ", font: "Arial", size: 16, color: "889988" }),
-                      new TextRun({ children: [PageNumber.CURRENT], font: "Arial", size: 16, color: "889988" }),
-                      new TextRun({ text: " av ", font: "Arial", size: 16, color: "889988" }),
-                      new TextRun({ children: [PageNumber.TOTAL_PAGES], font: "Arial", size: 16, color: "889988" })
-                    ]
-                  })
-                ]
-              })
-            },
-            children: [
-              // 1. SIDHUVUD
-              new Paragraph({
-                spacing: { before: 0, after: 40 },
-                children: [new TextRun({ text: "STYRELSEPROTOKOLL", bold: true, size: 36, color: COLOR_PRIMARY, font: "Arial" })]
-              }),
-              new Paragraph({
-                spacing: { before: 0, after: 40 },
-                children: [new TextRun({ text: "Bostadsrättsföreningen Gullvivan  |  Katrineholm Gullvivan 5", bold: true, size: 21, color: COLOR_SECONDARY, font: "Arial" })]
-              }),
-              new Paragraph({
-                spacing: { before: 0, after: 160 },
-                border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: COLOR_PRIMARY, space: 8 } },
-                children: [new TextRun({ text: `Org.nr: 718500-0523  •  Malmgatan 2, 4 och 6  •  Sammanträdesdatum: ${meetingDate}`, size: 18, color: COLOR_MUTED, font: "Arial" })]
-              }),
-
-              // 2. DAGORDNING & NÄRVARANDE
-              new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: [
-                  new TableRow({
-                    children: [
-                      new TableCell({
-                        width: { size: 52, type: WidthType.PERCENTAGE },
-                        shading: { fill: COLOR_BG_LIGHT, type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, right: { style: BorderStyle.NONE, size: 0, color: "auto" } },
-                        margins: { top: 120, bottom: 120, left: 140, right: 100 },
-                        children: [
-                          new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: "DAGORDNING", bold: true, size: 18, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          ...agendaParagraphs
-                        ]
-                      }),
-                      new TableCell({
-                        width: { size: 48, type: WidthType.PERCENTAGE },
-                        shading: { fill: COLOR_BG_LIGHT, type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.NONE, size: 0, color: "auto" }, right: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER } },
-                        margins: { top: 120, bottom: 120, left: 100, right: 140 },
-                        children: [
-                          new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: "NÄRVARANDE & ROLLER", bold: true, size: 18, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          ...attendees.map(att => new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: att, bold: att === "Närvarande suppleanter:", italics: activeSuppleanter.includes(att), size: 16, color: att === "Närvarande suppleanter:" ? COLOR_PRIMARY : "334433", font: "Arial" })] }))
-                        ]
-                      })
-                    ]
-                  })
-                ]
-              }),
-
-              new Paragraph({ spacing: { before: 180, after: 0 } }),
-
-              // 3. PARAGRAFER & ÄRENDEN
-              ...paragraphElements,
-
-              new Paragraph({ spacing: { before: 160, after: 0 } }),
-
-              // 4. UNDERSKRIFTER (3 Kolumner, hålls ihop på samma sida med cantSplit)
-              new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: [
-                  new TableRow({
-                    cantSplit: true,
-                    children: [
-                      new TableCell({
-                        width: { size: 33, type: WidthType.PERCENTAGE },
-                        shading: { fill: "FAFDFA", type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, right: { style: BorderStyle.NONE, size: 0, color: "auto" } },
-                        margins: { top: 140, bottom: 140, left: 140, right: 100 },
-                        children: [
-                          new Paragraph({ spacing: { after: 700 }, children: [new TextRun({ text: "Vid protokollet:", bold: true, size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "___________________________", color: "94A3B8" })] }),
-                          new Paragraph({ children: [new TextRun({ text: `${secretary}`, size: 16, bold: true, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ children: [new TextRun({ text: "(Sekreterare)", size: 14, color: COLOR_MUTED, font: "Arial" })] })
-                        ]
-                      }),
-                      new TableCell({
-                        width: { size: 33, type: WidthType.PERCENTAGE },
-                        shading: { fill: "FAFDFA", type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.NONE, size: 0, color: "auto" }, right: { style: BorderStyle.NONE, size: 0, color: "auto" } },
-                        margins: { top: 140, bottom: 140, left: 100, right: 100 },
-                        children: [
-                          new Paragraph({ spacing: { after: 700 }, children: [new TextRun({ text: "Justeras:", bold: true, size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "___________________________", color: "94A3B8" })] }),
-                          new Paragraph({ children: [new TextRun({ text: `${adjuster}`, size: 16, bold: true, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ children: [new TextRun({ text: "(Justerare)", size: 14, color: COLOR_MUTED, font: "Arial" })] })
-                        ]
-                      }),
-                      new TableCell({
-                        width: { size: 34, type: WidthType.PERCENTAGE },
-                        shading: { fill: "FAFDFA", type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.NONE, size: 0, color: "auto" }, right: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER } },
-                        margins: { top: 140, bottom: 140, left: 100, right: 140 },
-                        children: [
-                          new Paragraph({ spacing: { after: 700 }, children: [new TextRun({ text: "Justeras:", bold: true, size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "___________________________", color: "94A3B8" })] }),
-                          new Paragraph({ children: [new TextRun({ text: `${chair}`, size: 16, bold: true, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ children: [new TextRun({ text: "(Ordförande)", size: 14, color: COLOR_MUTED, font: "Arial" })] })
-                        ]
-                      })
-                    ]
-                  })
-                ]
-              })
-            ]
-          }
-        ]
-      });
-
-      const blob = await Packer.toBlob(doc);
-      saveAs(blob, `Styrelseprotokoll_${meetingDate}.docx`);
-
-    } catch (err) {
-      alert("Fel vid skapandet av Word-filen: " + err.message);
-      console.error(err);
-    } finally {
-      btn.textContent = "Ladda ner formaterat protokoll (.docx)";
-      btn.disabled = false;
-    }
-  }
-</script>
-
-</body>
-</html>
+  //
