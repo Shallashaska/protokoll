@@ -69,7 +69,7 @@
     }
     textarea { 
       resize: none; 
-      min-height: 40px; 
+      min-height: 60px; 
       overflow: hidden;
     }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -250,11 +250,11 @@
 
   function getDefaultParagraphs() {
     return [
-      { title: "Mötets öppnande", background: "Ordförande öppnade mötet och hälsade alla välkomna.", decision: "", subitems: [] },
-      { title: "Dagordning", background: "", decision: "Styrelsen beslutar att godkänna den föreslagna dagordningen.", subitems: [] },
-      { title: "Protokolljustering", background: "Protokollet från föregående styrelsemöte gicks igenom.", decision: "Styrelsen beslutar att godkänna föregående protokoll och lägga det till handlingarna.", subitems: [] },
-      { title: "Nästa styrelsemöte", background: "I föreningslokalen xxxx-xx-xx kl. xx:xx.", decision: "", subitems: [] },
-      { title: "Avslutning", background: "Ordförande tackade de närvarande för visat intresse och förklarade mötet avslutat.", decision: "", subitems: [] }
+      { title: "Mötets öppnande", text: "Ordförande öppnade mötet och hälsade alla välkomna.", subitems: [] },
+      { title: "Dagordning", text: "Styrelsen beslutar att godkänna den föreslagna dagordningen.", subitems: [] },
+      { title: "Protokolljustering", text: "Protokollet från föregående styrelsemöte gicks igenom.\nStyrelsen beslutar att godkänna föregående protokoll och lägga det till handlingarna.", subitems: [] },
+      { title: "Nästa styrelsemöte", text: "I föreningslokalen xxxx-xx-xx kl. xx:xx.", subitems: [] },
+      { title: "Avslutning", text: "Ordförande tackade de närvarande för visat intresse och förklarade mötet avslutat.", subitems: [] }
     ];
   }
 
@@ -316,11 +316,22 @@
     activeSuppleanter = state.suppleanter || [...DEFAULT_SUPPLEANTER];
     absentMembers = state.absent || [...DEFAULT_ABSENT];
     
+    // Hantera och slå ihop gamla fält (background + decision) till 'text'
     paraItems = (state.paraItems || getDefaultParagraphs()).map(p => {
-      if(p.background === undefined) { p.background = p.text || ""; p.decision = ""; }
+      if(p.text === undefined) { 
+        let merged = [];
+        if (p.background) merged.push(p.background);
+        if (p.decision) merged.push(p.decision);
+        p.text = merged.join("\n\n");
+      }
       if(p.subitems) {
         p.subitems = p.subitems.map(sub => {
-          if(sub.background === undefined) { sub.background = sub.text || ""; sub.decision = ""; }
+          if(sub.text === undefined) { 
+            let mergedSub = [];
+            if (sub.background) mergedSub.push(sub.background);
+            if (sub.decision) mergedSub.push(sub.decision);
+            sub.text = mergedSub.join("\n\n");
+          }
           return sub;
         });
       }
@@ -500,12 +511,8 @@
                 <input type="text" class="sub-title-${idx}-${sIdx}" value="${sub.title}" placeholder="Rubrik för underpunkt ${letter})" oninput="saveStateDebounced()">
               </div>
               <div class="form-group">
-                <label style="font-size:0.75rem;">Bakgrund / Diskussion</label>
-                <textarea class="sub-bg-${idx}-${sIdx}" oninput="autoExpand(this); saveStateDebounced()">${sub.background}</textarea>
-              </div>
-              <div class="form-group">
-                <label style="font-size:0.75rem;">Beslut</label>
-                <textarea class="sub-dec-${idx}-${sIdx}" oninput="autoExpand(this); saveStateDebounced()" placeholder="Styrelsen beslutar att...">${sub.decision}</textarea>
+                <label style="font-size:0.75rem;">Bakgrund / Beslut</label>
+                <textarea class="sub-text-${idx}-${sIdx}" oninput="autoExpand(this); saveStateDebounced()">${sub.text}</textarea>
               </div>
             </div>
           `;
@@ -525,12 +532,8 @@
           </div>
           ${(!p.subitems || p.subitems.length === 0) ? `
             <div class="form-group">
-              <label>Bakgrund / Diskussion</label>
-              <textarea class="para-bg-${idx}" oninput="autoExpand(this); saveStateDebounced()">${p.background}</textarea>
-            </div>
-            <div class="form-group">
-              <label>Beslut</label>
-              <textarea class="para-dec-${idx}" oninput="autoExpand(this); saveStateDebounced()" placeholder="Styrelsen beslutar att...">${p.decision}</textarea>
+              <label>Bakgrund / Beslut</label>
+              <textarea class="para-text-${idx}" oninput="autoExpand(this); saveStateDebounced()" placeholder="Anteckningar och beslut...">${p.text}</textarea>
             </div>
           ` : ''}
           
@@ -569,14 +572,14 @@
 
   function insertParagraphAt(index) {
     saveCurrentInputs();
-    paraItems.splice(index, 0, { title: "Ny punkt", background: "", decision: "", subitems: [] });
+    paraItems.splice(index, 0, { title: "Ny punkt", text: "", subitems: [] });
     renderParagraphs();
     saveStateDebounced();
   }
 
   function appendParagraph() {
     saveCurrentInputs();
-    paraItems.push({ title: "Ny punkt", background: "", decision: "", subitems: [] });
+    paraItems.push({ title: "Ny punkt", text: "", subitems: [] });
     renderParagraphs();
     saveStateDebounced();
   }
@@ -591,7 +594,7 @@
   function addSubitem(pIdx) {
     saveCurrentInputs();
     if (!paraItems[pIdx].subitems) paraItems[pIdx].subitems = [];
-    paraItems[pIdx].subitems.push({ title: "Ny underpunkt", background: "", decision: "" });
+    paraItems[pIdx].subitems.push({ title: "Ny underpunkt", text: "" });
     renderParagraphs();
     saveStateDebounced();
   }
@@ -608,22 +611,16 @@
       const tInput = document.querySelector(`.para-title-${idx}`);
       if (tInput) p.title = tInput.value;
 
-      const bgInput = document.querySelector(`.para-bg-${idx}`);
-      if (bgInput) p.background = bgInput.value;
-
-      const decInput = document.querySelector(`.para-dec-${idx}`);
-      if (decInput) p.decision = decInput.value;
+      const txtInput = document.querySelector(`.para-text-${idx}`);
+      if (txtInput) p.text = txtInput.value;
 
       if (p.subitems && p.subitems.length > 0) {
         p.subitems.forEach((sub, sIdx) => {
           const subTitleInput = document.querySelector(`.sub-title-${idx}-${sIdx}`);
           if (subTitleInput) sub.title = subTitleInput.value;
           
-          const subBgInput = document.querySelector(`.sub-bg-${idx}-${sIdx}`);
-          if (subBgInput) sub.background = subBgInput.value;
-          
-          const subDecInput = document.querySelector(`.sub-dec-${idx}-${sIdx}`);
-          if (subDecInput) sub.decision = subDecInput.value;
+          const subTextInput = document.querySelector(`.sub-text-${idx}-${sIdx}`);
+          if (subTextInput) sub.text = subTextInput.value;
         });
       }
     });
@@ -702,7 +699,6 @@
         startNumber = parseInt(match[2], 10);
       }
 
-      // Osynliga ramar för sidhuvudet / undertecknarna
       const noBorders = {
         top: { style: BorderStyle.NONE, size: 0, color: "auto" },
         bottom: { style: BorderStyle.NONE, size: 0, color: "auto" },
@@ -712,16 +708,12 @@
         insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" }
       };
 
-      // --- DAGORDNING ---
       const agendaParagraphs = [];
       paraItems.forEach((p, i) => {
         agendaParagraphs.push(
           new Paragraph({
             spacing: { after: 20 },
-            // Skapar hängande indrag för dagordningspunkter
-            indent: { left: 400, hanging: 400 },
-            tabStops: [{ type: "left", position: 400 }],
-            children: [new TextRun({ text: `${i + 1}.\t${p.title}`, size: 16, bold: p.subitems && p.subitems.length > 0, color: "334433", font: "Arial" })]
+            children: [new TextRun({ text: `${i + 1}. ${p.title}`, size: 16, bold: p.subitems && p.subitems.length > 0, color: "334433", font: "Arial" })]
           })
         );
         if (p.subitems && p.subitems.length > 0) {
@@ -729,17 +721,14 @@
             const letter = LETTERS[sIdx] || `${sIdx + 1}`;
             agendaParagraphs.push(
               new Paragraph({
-                spacing: { after: 15 }, 
-                indent: { left: 800, hanging: 400 },
-                tabStops: [{ type: "left", position: 800 }],
-                children: [new TextRun({ text: `${letter})\t${sub.title}`, size: 15, color: "556655", font: "Arial" })]
+                spacing: { after: 15 }, indent: { left: 240 },
+                children: [new TextRun({ text: `${letter}) ${sub.title}`, size: 15, color: "556655", font: "Arial" })]
               })
             );
           });
         }
       });
 
-      // --- NÄRVARANDE LISTOR ---
       const rightColChildren = [
         new Paragraph({
           spacing: { after: 20 },
@@ -787,50 +776,32 @@
         });
       }
 
-      // --- BRÖDTEXT (STYCKEN) MED PARAGRAPH INDENT ---
-      // Genom att sätta indent: { left: 1440 } på själva Paragraf-objektet 
-      // tvingas ALLA rader (även radbrytningar) att linjera perfekt i en snygg box!
-      const INDENT_LEFT = 1440; // ca 2,5 cm indrag
+      // Paragraf-indrag 1440 (ca 2.5cm) som gäller ALL brödtext
+      const INDENT_LEFT = 1440;
 
-      const addTextLines = (container, text, isDecision = false) => {
+      const addTextLines = (container, text) => {
         if (!text || !text.trim()) return;
         const lines = text.split('\n');
         
-        if (isDecision) {
-           container.push(
+        lines.forEach(line => {
+          if(!line.trim()) return;
+          container.push(
             new Paragraph({
-              spacing: { before: 20, after: 80 },
+              spacing: { before: 20, after: 60 },
               lineSpacing: 276,
-              indent: { left: INDENT_LEFT }, // HELA stycket dras in
+              indent: { left: INDENT_LEFT }, 
               children: [
-                new TextRun({ text: "Beslut: ", bold: true, size: 19, color: "1E4620", font: "Arial" }),
-                new TextRun({ text: text.trim(), bold: true, size: 19, color: "223322", font: "Arial" })
+                new TextRun({ text: line, size: 19, color: "223322", font: "Arial" })
               ]
             })
           );
-        } else {
-          lines.forEach(line => {
-            if(!line.trim()) return;
-            container.push(
-              new Paragraph({
-                spacing: { before: 20, after: 60 },
-                lineSpacing: 276,
-                indent: { left: INDENT_LEFT }, // HELA stycket dras in
-                children: [
-                  new TextRun({ text: line, size: 19, color: "223322", font: "Arial" })
-                ]
-              })
-            );
-          });
-        }
+        });
       };
 
       const paragraphElements = [];
       paraItems.forEach((p, idx) => {
         const currentParaNr = `${prefix}${startNumber + idx}`;
         
-        // Huvudrubrik: Hängande indrag. "2026-85" startar på kant, "\t" hoppar till 1440, titeln börjar på 1440.
-        // Om titeln radbryts fortsätter den linjerad på 1440.
         paragraphElements.push(
           new Paragraph({
             spacing: { before: 180, after: 60 },
@@ -846,8 +817,6 @@
         if (p.subitems && p.subitems.length > 0) {
           p.subitems.forEach((sub, sIdx) => {
             const letter = LETTERS[sIdx] || `${sIdx + 1}`;
-            // Underpunktsrubrik: Indrag från 1440. "a)" ritas på 1440, "\t" hoppar till ex 2160, rubrik börjar där.
-            // Men för att behålla samma linje överallt låter vi a) dras in på 1440, och texten börjar precis efter ett mellanslag.
             paragraphElements.push(
               new Paragraph({
                 spacing: { before: 100, after: 40 },
@@ -857,14 +826,10 @@
                 ]
               })
             );
-            // Samma vänstermarginal för underpunktens text
-            addTextLines(paragraphElements, sub.background, false);
-            addTextLines(paragraphElements, sub.decision, true);
+            addTextLines(paragraphElements, sub.text);
           });
         } else {
-          // Vanlig text
-          addTextLines(paragraphElements, p.background, false);
-          addTextLines(paragraphElements, p.decision, true);
+          addTextLines(paragraphElements, p.text);
         }
       });
 
@@ -905,7 +870,7 @@
                 children: [new TextRun({ text: `Org.nr: 718500-0523  •  Malmgatan 2, 4 och 6  •  Sammanträdesdatum: ${meetingDate}`, size: 18, color: COLOR_MUTED, font: "Arial" })]
               }),
 
-              // 2. DAGORDNING & NÄRVARANDE (Utan synliga ramar)
+              // 2. DAGORDNING & NÄRVARANDE
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 borders: noBorders,
@@ -939,7 +904,7 @@
 
               new Paragraph({ spacing: { before: 240, after: 0 } }),
 
-              // 4. UNDERSKRIFTER (Utan synliga ramar, generöst skrivutrymme)
+              // 4. UNDERSKRIFTER
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 borders: noBorders,
