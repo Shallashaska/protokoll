@@ -672,7 +672,7 @@
     }
   });
 
-  // --- WORD EXPORT (Helt ren utan ramar) ---
+  // --- WORD EXPORT ---
   async function generateDocx() {
     saveCurrentInputs();
     saveToLocalStorage();
@@ -702,7 +702,7 @@
         startNumber = parseInt(match[2], 10);
       }
 
-      // Osynliga ramar för tabellerna i Word
+      // Osynliga ramar för sidhuvudet / undertecknarna
       const noBorders = {
         top: { style: BorderStyle.NONE, size: 0, color: "auto" },
         bottom: { style: BorderStyle.NONE, size: 0, color: "auto" },
@@ -712,13 +712,16 @@
         insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" }
       };
 
-      // Vänsterspalt (Dagordning)
+      // --- DAGORDNING ---
       const agendaParagraphs = [];
       paraItems.forEach((p, i) => {
         agendaParagraphs.push(
           new Paragraph({
             spacing: { after: 20 },
-            children: [new TextRun({ text: `${i + 1}. ${p.title}`, size: 16, bold: p.subitems && p.subitems.length > 0, color: "334433", font: "Arial" })]
+            // Skapar hängande indrag för dagordningspunkter
+            indent: { left: 400, hanging: 400 },
+            tabStops: [{ type: "left", position: 400 }],
+            children: [new TextRun({ text: `${i + 1}.\t${p.title}`, size: 16, bold: p.subitems && p.subitems.length > 0, color: "334433", font: "Arial" })]
           })
         );
         if (p.subitems && p.subitems.length > 0) {
@@ -726,15 +729,17 @@
             const letter = LETTERS[sIdx] || `${sIdx + 1}`;
             agendaParagraphs.push(
               new Paragraph({
-                spacing: { after: 15 }, indent: { left: 240 },
-                children: [new TextRun({ text: `${letter}) ${sub.title}`, size: 15, color: "556655", font: "Arial" })]
+                spacing: { after: 15 }, 
+                indent: { left: 800, hanging: 400 },
+                tabStops: [{ type: "left", position: 800 }],
+                children: [new TextRun({ text: `${letter})\t${sub.title}`, size: 15, color: "556655", font: "Arial" })]
               })
             );
           });
         }
       });
 
-      // Högerspalt (Närvarande & Roller med exakt struktur från ditt dokument)
+      // --- NÄRVARANDE LISTOR ---
       const rightColChildren = [
         new Paragraph({
           spacing: { after: 20 },
@@ -782,7 +787,11 @@
         });
       }
 
-      // --- Helper för text i Paragrafer (Med ENKEL tab) ---
+      // --- BRÖDTEXT (STYCKEN) MED PARAGRAPH INDENT ---
+      // Genom att sätta indent: { left: 1440 } på själva Paragraf-objektet 
+      // tvingas ALLA rader (även radbrytningar) att linjera perfekt i en snygg box!
+      const INDENT_LEFT = 1440; // ca 2,5 cm indrag
+
       const addTextLines = (container, text, isDecision = false) => {
         if (!text || !text.trim()) return;
         const lines = text.split('\n');
@@ -792,8 +801,9 @@
             new Paragraph({
               spacing: { before: 20, after: 80 },
               lineSpacing: 276,
+              indent: { left: INDENT_LEFT }, // HELA stycket dras in
               children: [
-                new TextRun({ text: "\tBeslut: ", bold: true, size: 19, color: "1E4620", font: "Arial" }),
+                new TextRun({ text: "Beslut: ", bold: true, size: 19, color: "1E4620", font: "Arial" }),
                 new TextRun({ text: text.trim(), bold: true, size: 19, color: "223322", font: "Arial" })
               ]
             })
@@ -805,8 +815,9 @@
               new Paragraph({
                 spacing: { before: 20, after: 60 },
                 lineSpacing: 276,
+                indent: { left: INDENT_LEFT }, // HELA stycket dras in
                 children: [
-                  new TextRun({ text: "\t" + line, size: 19, color: "223322", font: "Arial" })
+                  new TextRun({ text: line, size: 19, color: "223322", font: "Arial" })
                 ]
               })
             );
@@ -818,11 +829,14 @@
       paraItems.forEach((p, idx) => {
         const currentParaNr = `${prefix}${startNumber + idx}`;
         
-        // Huvudrubrik: Paragrafnummer \t Titel
+        // Huvudrubrik: Hängande indrag. "2026-85" startar på kant, "\t" hoppar till 1440, titeln börjar på 1440.
+        // Om titeln radbryts fortsätter den linjerad på 1440.
         paragraphElements.push(
           new Paragraph({
             spacing: { before: 180, after: 60 },
             keepWithNext: true,
+            indent: { left: INDENT_LEFT, hanging: INDENT_LEFT },
+            tabStops: [{ type: "left", position: INDENT_LEFT }],
             children: [
               new TextRun({ text: `${currentParaNr}\t${p.title}`, bold: true, size: 20, color: COLOR_PRIMARY, font: "Arial" })
             ]
@@ -832,21 +846,23 @@
         if (p.subitems && p.subitems.length > 0) {
           p.subitems.forEach((sub, sIdx) => {
             const letter = LETTERS[sIdx] || `${sIdx + 1}`;
-            // Underpunktsrubrik får en tabb
+            // Underpunktsrubrik: Indrag från 1440. "a)" ritas på 1440, "\t" hoppar till ex 2160, rubrik börjar där.
+            // Men för att behålla samma linje överallt låter vi a) dras in på 1440, och texten börjar precis efter ett mellanslag.
             paragraphElements.push(
               new Paragraph({
                 spacing: { before: 100, after: 40 },
+                indent: { left: INDENT_LEFT },
                 children: [
-                  new TextRun({ text: `\t${letter}) ${sub.title}`, bold: true, size: 19, color: COLOR_SECONDARY, font: "Arial" })
+                  new TextRun({ text: `${letter}) ${sub.title}`, bold: true, size: 19, color: COLOR_SECONDARY, font: "Arial" })
                 ]
               })
             );
-            // Underpunktens text får EN tabb
+            // Samma vänstermarginal för underpunktens text
             addTextLines(paragraphElements, sub.background, false);
             addTextLines(paragraphElements, sub.decision, true);
           });
         } else {
-          // Vanlig text får EN tabb
+          // Vanlig text
           addTextLines(paragraphElements, p.background, false);
           addTextLines(paragraphElements, p.decision, true);
         }
