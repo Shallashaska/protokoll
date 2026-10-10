@@ -169,7 +169,7 @@
     </div>
     <div class="form-group">
       <label>Startnummer för paragrafer (År–Nr)</label>
-      <input type="text" id="startNr" value="2026–82" placeholder="T.ex. 2026–82" oninput="saveStateDebounced()">
+      <input type="text" id="startNr" value="2026–85" placeholder="T.ex. 2026–85" oninput="saveStateDebounced()">
     </div>
   </div>
 
@@ -199,7 +199,7 @@
 
     <!-- Frånvarande -->
     <div class="person-box">
-      <h4>Frånvarande (Förhinder)</h4>
+      <h4>Frånvarande</h4>
       <p style="font-size:0.75rem; color:#556655; margin-bottom:8px;">Flytta tillbaka eller ta bort helt (X):</p>
       <ul id="absentList" class="person-list"></ul>
       <div class="add-person-row">
@@ -371,9 +371,7 @@
     event.target.value = '';
   }
 
-  // --- NÄRVAROHANTERING ---
   function renderPeople() {
-    // Rendera Beslutande
     const attUl = document.getElementById('attendeesList');
     attUl.innerHTML = '';
     if (activeAttendees.length === 0) attUl.innerHTML = '<li style="color:#778877; font-size:0.85rem;">Inga beslutande</li>';
@@ -387,7 +385,6 @@
       attUl.appendChild(li);
     });
 
-    // Rendera Suppleanter
     const supUl = document.getElementById('suppleanterList');
     supUl.innerHTML = '';
     if (activeSuppleanter.length === 0) supUl.innerHTML = '<li style="color:#778877; font-size:0.85rem;">Inga suppleanter</li>';
@@ -404,7 +401,6 @@
       supUl.appendChild(li);
     });
 
-    // Rendera Frånvarande
     const absUl = document.getElementById('absentList');
     absUl.innerHTML = '';
     if (absentMembers.length === 0) absUl.innerHTML = '<li style="color:#778877; font-size:0.85rem;">Inga frånvarande</li>';
@@ -457,11 +453,8 @@
   }
 
   function moveToAbsent(fromType, idx) {
-    if (fromType === 'attendee') {
-      absentMembers.push(activeAttendees.splice(idx, 1)[0]);
-    } else {
-      absentMembers.push(activeSuppleanter.splice(idx, 1)[0]);
-    }
+    if (fromType === 'attendee') absentMembers.push(activeAttendees.splice(idx, 1)[0]);
+    else absentMembers.push(activeSuppleanter.splice(idx, 1)[0]);
     renderPeople();
     saveStateDebounced();
   }
@@ -473,11 +466,8 @@
   }
 
   function restoreFromAbsent(toType, idx) {
-    if (toType === 'attendee') {
-      activeAttendees.push(absentMembers.splice(idx, 1)[0]);
-    } else {
-      activeSuppleanter.push(absentMembers.splice(idx, 1)[0]);
-    }
+    if (toType === 'attendee') activeAttendees.push(absentMembers.splice(idx, 1)[0]);
+    else activeSuppleanter.push(absentMembers.splice(idx, 1)[0]);
     renderPeople();
     saveStateDebounced();
   }
@@ -488,7 +478,6 @@
     saveStateDebounced();
   }
 
-  // --- PARAGRAFHANTERING ---
   function renderParagraphs() {
     const container = document.getElementById('paragraphsContainer');
     container.innerHTML = '';
@@ -683,7 +672,7 @@
     }
   });
 
-  // --- WORD EXPORT ---
+  // --- WORD EXPORT (Helt ren utan ramar) ---
   async function generateDocx() {
     saveCurrentInputs();
     saveToLocalStorage();
@@ -693,27 +682,35 @@
     btn.disabled = true;
 
     try {
-      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, Footer, AlignmentType, PageNumber } = docx;
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, Footer, AlignmentType, PageNumber } = docx;
 
       const COLOR_PRIMARY = "1E4620";
       const COLOR_SECONDARY = "406343";
       const COLOR_MUTED = "556655";
-      const COLOR_BG_LIGHT = "F2F6F2";
-      const COLOR_BOX_BORDER = "D5E2D5";
 
       const meetingDate = document.getElementById('meetingDate').value || new Date().toISOString().substring(0, 10);
-      const startNrStr = document.getElementById('startNr').value.trim() || "2026–82";
+      const startNrStr = document.getElementById('startNr').value.trim() || "2026–85";
       const secretary = document.getElementById('secretary').value;
       const adjuster = document.getElementById('adjuster').value;
       const chair = document.getElementById('chair').value;
 
       let prefix = "2026–";
-      let startNumber = 82;
+      let startNumber = 85;
       const match = startNrStr.match(/^(.*?)(\d+)$/);
       if (match) {
         prefix = match[1];
         startNumber = parseInt(match[2], 10);
       }
+
+      // Osynliga ramar för tabellerna i Word
+      const noBorders = {
+        top: { style: BorderStyle.NONE, size: 0, color: "auto" },
+        bottom: { style: BorderStyle.NONE, size: 0, color: "auto" },
+        left: { style: BorderStyle.NONE, size: 0, color: "auto" },
+        right: { style: BorderStyle.NONE, size: 0, color: "auto" },
+        insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "auto" },
+        insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" }
+      };
 
       // Vänsterspalt (Dagordning)
       const agendaParagraphs = [];
@@ -737,15 +734,11 @@
         }
       });
 
-      // Högerspalt (Närvarande & Roller med exakt struktur)
+      // Högerspalt (Närvarande & Roller med exakt struktur från ditt dokument)
       const rightColChildren = [
         new Paragraph({
           spacing: { after: 20 },
-          children: [new TextRun({ text: "NÄRVARANDE & ROLLER", bold: true, size: 18, color: COLOR_PRIMARY, font: "Arial" })]
-        }),
-        new Paragraph({
-          spacing: { after: 10 },
-          children: [new TextRun({ text: "NÄRVARANDE:", bold: true, size: 16, color: "334433", font: "Arial" })]
+          children: [new TextRun({ text: "NÄRVARANDE:", bold: true, size: 18, color: "334433", font: "Arial" })]
         }),
         ...activeAttendees.map(att => 
           new Paragraph({
@@ -758,7 +751,7 @@
       if (activeSuppleanter.length > 0) {
         rightColChildren.push(
           new Paragraph({
-            spacing: { before: 10, after: 10 },
+            spacing: { before: 80, after: 20 },
             children: [new TextRun({ text: "Närvarande suppleanter:", bold: true, size: 16, color: "334433", font: "Arial" })]
           })
         );
@@ -775,7 +768,7 @@
       if (absentMembers.length > 0) {
         rightColChildren.push(
           new Paragraph({
-            spacing: { before: 10, after: 10 },
+            spacing: { before: 80, after: 20 },
             children: [new TextRun({ text: "Frånvarande:", bold: true, size: 16, color: "334433", font: "Arial" })]
           })
         );
@@ -783,13 +776,13 @@
           rightColChildren.push(
             new Paragraph({
               spacing: { after: 10 },
-              children: [new TextRun({ text: abs, size: 16, color: "556655", font: "Arial" })]
+              children: [new TextRun({ text: abs, size: 16, color: "334433", font: "Arial" })]
             })
           );
         });
       }
 
-      // Helper för paragrafter
+      // --- Helper för text i Paragrafer (Med ENKEL tab) ---
       const addTextLines = (container, text, isDecision = false) => {
         if (!text || !text.trim()) return;
         const lines = text.split('\n');
@@ -797,10 +790,10 @@
         if (isDecision) {
            container.push(
             new Paragraph({
-              spacing: { before: 20, after: 60 },
+              spacing: { before: 20, after: 80 },
               lineSpacing: 276,
               children: [
-                new TextRun({ text: "Beslut: ", bold: true, size: 19, color: "1E4620", font: "Arial" }),
+                new TextRun({ text: "\tBeslut: ", bold: true, size: 19, color: "1E4620", font: "Arial" }),
                 new TextRun({ text: text.trim(), bold: true, size: 19, color: "223322", font: "Arial" })
               ]
             })
@@ -813,7 +806,7 @@
                 spacing: { before: 20, after: 60 },
                 lineSpacing: 276,
                 children: [
-                  new TextRun({ text: line, size: 19, color: "223322", font: "Arial" })
+                  new TextRun({ text: "\t" + line, size: 19, color: "223322", font: "Arial" })
                 ]
               })
             );
@@ -824,12 +817,14 @@
       const paragraphElements = [];
       paraItems.forEach((p, idx) => {
         const currentParaNr = `${prefix}${startNumber + idx}`;
+        
+        // Huvudrubrik: Paragrafnummer \t Titel
         paragraphElements.push(
           new Paragraph({
             spacing: { before: 180, after: 60 },
             keepWithNext: true,
             children: [
-              new TextRun({ text: `${currentParaNr}  ${p.title}`, bold: true, size: 20, color: COLOR_PRIMARY, font: "Arial" })
+              new TextRun({ text: `${currentParaNr}\t${p.title}`, bold: true, size: 20, color: COLOR_PRIMARY, font: "Arial" })
             ]
           })
         );
@@ -837,18 +832,21 @@
         if (p.subitems && p.subitems.length > 0) {
           p.subitems.forEach((sub, sIdx) => {
             const letter = LETTERS[sIdx] || `${sIdx + 1}`;
+            // Underpunktsrubrik får en tabb
             paragraphElements.push(
               new Paragraph({
                 spacing: { before: 100, after: 40 },
                 children: [
-                  new TextRun({ text: `${letter}) ${sub.title}`, bold: true, size: 19, color: COLOR_SECONDARY, font: "Arial" })
+                  new TextRun({ text: `\t${letter}) ${sub.title}`, bold: true, size: 19, color: COLOR_SECONDARY, font: "Arial" })
                 ]
               })
             );
+            // Underpunktens text får EN tabb
             addTextLines(paragraphElements, sub.background, false);
             addTextLines(paragraphElements, sub.decision, true);
           });
         } else {
+          // Vanlig text får EN tabb
           addTextLines(paragraphElements, p.background, false);
           addTextLines(paragraphElements, p.decision, true);
         }
@@ -858,9 +856,7 @@
         sections: [
           {
             properties: {
-              page: {
-                margin: { top: 1008, bottom: 1008, left: 1152, right: 1152 }
-              }
+              page: { margin: { top: 1008, bottom: 1008, left: 1152, right: 1152 } }
             },
             footers: {
               default: new Footer({
@@ -893,29 +889,26 @@
                 children: [new TextRun({ text: `Org.nr: 718500-0523  •  Malmgatan 2, 4 och 6  •  Sammanträdesdatum: ${meetingDate}`, size: 18, color: COLOR_MUTED, font: "Arial" })]
               }),
 
-              // 2. DAGORDNING & NÄRVARANDE
+              // 2. DAGORDNING & NÄRVARANDE (Utan synliga ramar)
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: noBorders,
                 rows: [
                   new TableRow({
                     children: [
-                      // Vänster - Dagordning
                       new TableCell({
-                        width: { size: 52, type: WidthType.PERCENTAGE },
-                        shading: { fill: COLOR_BG_LIGHT, type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, right: { style: BorderStyle.NONE, size: 0, color: "auto" } },
-                        margins: { top: 120, bottom: 120, left: 140, right: 100 },
+                        width: { size: 50, type: WidthType.PERCENTAGE },
+                        borders: noBorders,
+                        margins: { top: 120, bottom: 120, left: 0, right: 100 },
                         children: [
-                          new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: "DAGORDNING", bold: true, size: 18, color: COLOR_PRIMARY, font: "Arial" })] }),
+                          new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: "DAGORDNING", bold: true, size: 18, color: "334433", font: "Arial" })] }),
                           ...agendaParagraphs
                         ]
                       }),
-                      // Höger - Närvarande & Roller
                       new TableCell({
-                        width: { size: 48, type: WidthType.PERCENTAGE },
-                        shading: { fill: COLOR_BG_LIGHT, type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.NONE, size: 0, color: "auto" }, right: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER } },
-                        margins: { top: 120, bottom: 120, left: 100, right: 140 },
+                        width: { size: 50, type: WidthType.PERCENTAGE },
+                        borders: noBorders,
+                        margins: { top: 120, bottom: 120, left: 100, right: 0 },
                         children: rightColChildren
                       })
                     ]
@@ -923,54 +916,52 @@
                 ]
               }),
 
-              new Paragraph({ spacing: { before: 180, after: 0 } }),
+              new Paragraph({ spacing: { before: 240, after: 0 } }),
 
               // 3. PARAGRAFER & ÄRENDEN
               ...paragraphElements,
 
-              new Paragraph({ spacing: { before: 160, after: 0 } }),
+              new Paragraph({ spacing: { before: 240, after: 0 } }),
 
-              // 4. UNDERSKRIFTER
+              // 4. UNDERSKRIFTER (Utan synliga ramar, generöst skrivutrymme)
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: noBorders,
                 rows: [
                   new TableRow({
                     cantSplit: true,
                     children: [
                       new TableCell({
                         width: { size: 33, type: WidthType.PERCENTAGE },
-                        shading: { fill: "FAFDFA", type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, right: { style: BorderStyle.NONE, size: 0, color: "auto" } },
-                        margins: { top: 140, bottom: 140, left: 140, right: 100 },
+                        borders: noBorders,
+                        margins: { top: 100, bottom: 100, left: 0, right: 80 },
                         children: [
-                          new Paragraph({ spacing: { after: 700 }, children: [new TextRun({ text: "Vid protokollet:", bold: true, size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "___________________________", color: "94A3B8" })] }),
-                          new Paragraph({ children: [new TextRun({ text: `${secretary}`, size: 16, bold: true, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ children: [new TextRun({ text: "(Sekreterare)", size: 14, color: COLOR_MUTED, font: "Arial" })] })
+                          new Paragraph({ spacing: { after: 600 }, children: [new TextRun({ text: "Vid protokollet:", size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
+                          new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "________________________", color: "334433" })] }),
+                          new Paragraph({ children: [new TextRun({ text: `${secretary}`, size: 16, color: "334433", font: "Arial" })] }),
+                          new Paragraph({ children: [new TextRun({ text: "(Sekreterare)", size: 14, color: "334433", font: "Arial" })] })
                         ]
                       }),
                       new TableCell({
                         width: { size: 33, type: WidthType.PERCENTAGE },
-                        shading: { fill: "FAFDFA", type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.NONE, size: 0, color: "auto" }, right: { style: BorderStyle.NONE, size: 0, color: "auto" } },
-                        margins: { top: 140, bottom: 140, left: 100, right: 100 },
+                        borders: noBorders,
+                        margins: { top: 100, bottom: 100, left: 40, right: 40 },
                         children: [
-                          new Paragraph({ spacing: { after: 700 }, children: [new TextRun({ text: "Justeras:", bold: true, size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "___________________________", color: "94A3B8" })] }),
-                          new Paragraph({ children: [new TextRun({ text: `${adjuster}`, size: 16, bold: true, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ children: [new TextRun({ text: "(Justerare)", size: 14, color: COLOR_MUTED, font: "Arial" })] })
+                          new Paragraph({ spacing: { after: 600 }, children: [new TextRun({ text: "Justeras:", size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
+                          new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "___________________________", color: "334433" })] }),
+                          new Paragraph({ children: [new TextRun({ text: `${adjuster}`, size: 16, color: "334433", font: "Arial" })] }),
+                          new Paragraph({ children: [new TextRun({ text: "(Justerare)", size: 14, color: "334433", font: "Arial" })] })
                         ]
                       }),
                       new TableCell({
                         width: { size: 34, type: WidthType.PERCENTAGE },
-                        shading: { fill: "FAFDFA", type: ShadingType.CLEAR },
-                        borders: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER }, left: { style: BorderStyle.NONE, size: 0, color: "auto" }, right: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BOX_BORDER } },
-                        margins: { top: 140, bottom: 140, left: 100, right: 140 },
+                        borders: noBorders,
+                        margins: { top: 100, bottom: 100, left: 80, right: 0 },
                         children: [
-                          new Paragraph({ spacing: { after: 700 }, children: [new TextRun({ text: "Justeras:", bold: true, size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: "___________________________", color: "94A3B8" })] }),
-                          new Paragraph({ children: [new TextRun({ text: `${chair}`, size: 16, bold: true, color: COLOR_PRIMARY, font: "Arial" })] }),
-                          new Paragraph({ children: [new TextRun({ text: "(Ordförande)", size: 14, color: COLOR_MUTED, font: "Arial" })] })
+                          new Paragraph({ spacing: { after: 600 }, children: [new TextRun({ text: "Justeras:", size: 16, color: COLOR_PRIMARY, font: "Arial" })] }),
+                          new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: "___________________________", color: "334433" })] }),
+                          new Paragraph({ children: [new TextRun({ text: `${chair}`, size: 16, color: "334433", font: "Arial" })] }),
+                          new Paragraph({ children: [new TextRun({ text: "(Ordförande)", size: 14, color: "334433", font: "Arial" })] })
                         ]
                       })
                     ]
