@@ -69,7 +69,7 @@
     }
     textarea { 
       resize: none; 
-      min-height: 60px; 
+      min-height: 40px; 
       overflow: hidden;
     }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -708,12 +708,16 @@
         insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" }
       };
 
+      // --- DAGORDNING ---
       const agendaParagraphs = [];
       paraItems.forEach((p, i) => {
         agendaParagraphs.push(
           new Paragraph({
             spacing: { after: 20 },
-            children: [new TextRun({ text: `${i + 1}. ${p.title}`, size: 16, bold: p.subitems && p.subitems.length > 0, color: "334433", font: "Arial" })]
+            indent: { left: 400, hanging: 400 },
+            tabStops: [{ type: "left", position: 400 }],
+            // Fetstilen är nu BORTTAGEN här! Samma som andra.
+            children: [new TextRun({ text: `${i + 1}.\t${p.title}`, size: 16, color: "334433", font: "Arial" })]
           })
         );
         if (p.subitems && p.subitems.length > 0) {
@@ -721,8 +725,11 @@
             const letter = LETTERS[sIdx] || `${sIdx + 1}`;
             agendaParagraphs.push(
               new Paragraph({
-                spacing: { after: 15 }, indent: { left: 240 },
-                children: [new TextRun({ text: `${letter}) ${sub.title}`, size: 15, color: "556655", font: "Arial" })]
+                spacing: { after: 15 }, 
+                indent: { left: 800, hanging: 400 },
+                tabStops: [{ type: "left", position: 800 }],
+                // Storleken är nu 16 (8pt) precis som huvudpunkten.
+                children: [new TextRun({ text: `${letter})\t${sub.title}`, size: 16, color: "556655", font: "Arial" })]
               })
             );
           });
@@ -776,7 +783,6 @@
         });
       }
 
-      // Paragraf-indrag 1440 (ca 2.5cm) som gäller ALL brödtext
       const INDENT_LEFT = 1440;
 
       const addTextLines = (container, text) => {
@@ -870,7 +876,7 @@
                 children: [new TextRun({ text: `Org.nr: 718500-0523  •  Malmgatan 2, 4 och 6  •  Sammanträdesdatum: ${meetingDate}`, size: 18, color: COLOR_MUTED, font: "Arial" })]
               }),
 
-              // 2. DAGORDNING & NÄRVARANDE
+              // 2. DAGORDNING & NÄRVARANDE (Utan synliga ramar)
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 borders: noBorders,
@@ -904,7 +910,7 @@
 
               new Paragraph({ spacing: { before: 240, after: 0 } }),
 
-              // 4. UNDERSKRIFTER
+              // 4. UNDERSKRIFTER (Utan synliga ramar, generöst skrivutrymme)
               new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 borders: noBorders,
